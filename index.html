@@ -1,0 +1,2395 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Slide Builder</title>
+<style>
+  :root{
+    --bg:#0a0a0c;
+    --glass:rgba(255,255,255,0.05);
+    --glass-strong:rgba(255,255,255,0.08);
+    --glass-hover:rgba(255,255,255,0.10);
+    --border:rgba(255,255,255,0.10);
+    --border-soft:rgba(255,255,255,0.06);
+    --fg:#f5f5f7;
+    --muted:rgba(255,255,255,0.55);
+    --accent:#ff4d4d;
+    --yellow:#f5c542;
+    --green:#27c93f;
+    --blue:#4d9fff;
+    --purple:#a78bfa;
+    --orange:#fb923c;
+    --select:#4d9fff;
+    --font:-apple-system,"Segoe UI",Roboto,sans-serif;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+
+  html,body{
+    background:var(--bg);
+    color:var(--fg);
+    font-family:var(--font);
+    height:100%;
+    overflow:hidden;
+    overscroll-behavior:none;
+  }
+
+  body::before{
+    content:'';
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:0;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(255,77,77,0.10), transparent 45%),
+      radial-gradient(circle at 85% 20%, rgba(77,159,255,0.10), transparent 45%),
+      radial-gradient(circle at 50% 90%, rgba(167,139,250,0.10), transparent 50%),
+      radial-gradient(circle at 90% 80%, rgba(39,201,63,0.06), transparent 45%);
+  }
+
+  .app{
+    display:flex;
+    height:100vh;
+    height:100dvh;
+    flex-direction:column;
+    position:relative;
+    z-index:1;
+  }
+
+  .toolbar{
+    background:rgba(255,255,255,0.03);
+    backdrop-filter:blur(24px) saturate(180%);
+    -webkit-backdrop-filter:blur(24px) saturate(180%);
+    border-bottom:1px solid var(--border-soft);
+    padding:8px;
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+    align-items:center;
+    flex-shrink:0;
+    z-index:100;
+    position:relative;
+  }
+  .toolbar h1{
+    font-size:.85rem;
+    font-weight:700;
+    margin-right:auto;
+    color:var(--fg);
+    letter-spacing:.3px;
+  }
+
+  .btn{
+    background:rgba(255,255,255,0.06);
+    border:1px solid var(--border);
+    color:var(--fg);
+    padding:7px 11px;
+    border-radius:10px;
+    font-size:.78rem;
+    cursor:pointer;
+    white-space:nowrap;
+    font-family:inherit;
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    transition:background .15s, border-color .15s;
+  }
+  .btn:hover{background:var(--glass-hover);border-color:rgba(255,255,255,0.18);}
+  .btn:active{background:rgba(255,255,255,0.14);}
+
+  .btn.primary{
+    background:linear-gradient(135deg, rgba(255,77,77,0.85), rgba(255,120,120,0.75));
+    border:1px solid rgba(255,150,150,0.35);
+    color:#fff;
+    font-weight:600;
+  }
+  .btn.primary:hover{background:linear-gradient(135deg, rgba(255,77,77,0.95), rgba(255,120,120,0.85));}
+
+  .btn.green{
+    background:linear-gradient(135deg, rgba(39,201,63,0.75), rgba(80,220,100,0.65));
+    border:1px solid rgba(100,230,120,0.35);
+    color:#fff;
+    font-weight:600;
+  }
+  .btn.green:hover{background:linear-gradient(135deg, rgba(39,201,63,0.9), rgba(80,220,100,0.8));}
+
+  .btn.purple{
+    background:linear-gradient(135deg, rgba(167,139,250,0.75), rgba(190,160,255,0.65));
+    border:1px solid rgba(200,180,255,0.35);
+    color:#fff;
+    font-weight:600;
+  }
+  .btn.purple:hover{background:linear-gradient(135deg, rgba(167,139,250,0.9), rgba(190,160,255,0.8));}
+
+  .btn.blue{
+    background:linear-gradient(135deg, rgba(77,159,255,0.75), rgba(120,180,255,0.65));
+    border:1px solid rgba(140,190,255,0.35);
+    color:#fff;
+    font-weight:600;
+  }
+  .btn.blue:hover{background:linear-gradient(135deg, rgba(77,159,255,0.9), rgba(120,180,255,0.8));}
+
+  .btn.icon-btn{display:inline-flex;align-items:center;gap:7px;padding:8px 11px;}
+  .btn-icon{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;flex-shrink:0;color:var(--accent);}
+  .btn-icon svg{width:18px;height:18px;display:block;}
+
+  .stage-wrap{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:8px;
+    overflow:hidden;
+    min-height:0;
+    position:relative;
+  }
+  .stage{
+    width:100%;
+    max-width:900px;
+    aspect-ratio:9/16;
+    max-height:100%;
+    background:rgba(10,10,12,0.55);
+    backdrop-filter:blur(30px) saturate(180%);
+    -webkit-backdrop-filter:blur(30px) saturate(180%);
+    border-radius:18px;
+    border:1px solid var(--border);
+    position:relative;
+    overflow:hidden;
+  }
+
+  .html-editor{
+    position:absolute;
+    inset:0;
+    display:block;
+    overflow-y:auto;
+  }
+
+  .slide{
+    position:absolute;
+    inset:0;
+    padding:50px 14px 90px;
+    display:none;
+    flex-wrap:wrap;
+    align-content:center;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    text-align:center;
+    overflow-y:auto;
+  }
+  .slide.active{display:flex;}
+
+  .el{
+    position:relative;
+    flex:0 0 auto;
+    max-width:100%;
+    font-size:calc(1rem * var(--scale, 1));
+  }
+  .el.size-xs{--scale:0.6;} .el.size-s{--scale:0.8;} .el.size-m{--scale:1;}
+  .el.size-l{--scale:1.3;} .el.size-xl{--scale:1.7;} .el.size-xxl{--scale:2.2;}
+
+  .el.w-100{width:100%;} .el.w-75{width:calc(75% - 3px);} .el.w-50{width:calc(50% - 5px);}
+  .el.w-33{width:calc(33.33% - 7px);} .el.w-25{width:calc(25% - 8px);} .el.w-auto{width:auto;}
+  .el.break-after{flex-basis:100%;height:0;margin:0;padding:0;pointer-events:none;}
+  .el.break-after > *{display:none;}
+  .el > div{width:100%;}
+
+  .el.selected{
+    outline:2px solid var(--select);
+    outline-offset:5px;
+    border-radius:8px;
+  }
+
+  .stage.presentation .insert-btn,
+  .stage.presentation .el-del,
+  .stage.presentation .el-edit,
+  .stage.presentation .add-end-btn,
+  .stage.presentation .empty-state,
+  .stage.presentation .fab-add{display:none !important;}
+  .stage.presentation .el.selected{outline:none !important;}
+
+  .insert-btn{
+    position:absolute;
+    width:32px;height:32px;
+    border-radius:50%;
+    background:rgba(77,159,255,0.85);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    color:#fff;
+    border:1px solid rgba(140,190,255,0.5);
+    font-size:1.1rem;font-weight:700;
+    cursor:pointer;
+    display:none;
+    align-items:center;justify-content:center;
+    z-index:20;
+    line-height:1;padding:0;font-family:inherit;
+  }
+  .el.selected > .insert-btn{display:flex;}
+  .insert-before{top:-16px;left:-16px;}
+  .insert-after{bottom:-16px;right:-16px;}
+
+  .el-del{
+    position:absolute;top:-16px;right:-16px;
+    background:rgba(255,77,77,0.85);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    border:1px solid rgba(255,140,140,0.5);
+    color:#fff;
+    width:28px;height:28px;border-radius:50%;
+    font-size:.75rem;cursor:pointer;
+    display:none;align-items:center;justify-content:center;
+    padding:0;line-height:1;z-index:25;font-family:inherit;
+  }
+  .el.selected > .el-del{display:flex;}
+
+  .el-edit{
+    position:absolute;bottom:-16px;left:-16px;
+    background:rgba(167,139,250,0.85);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    border:1px solid rgba(200,180,255,0.5);
+    color:#fff;
+    width:28px;height:28px;border-radius:50%;
+    font-size:.8rem;cursor:pointer;
+    display:none;align-items:center;justify-content:center;
+    padding:0;line-height:1;z-index:25;font-family:inherit;
+  }
+  .el.selected > .el-edit{display:flex;}
+
+  .empty-state{
+    flex-basis:100%;width:100%;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:14px;padding:30px;
+    background:rgba(255,255,255,0.03);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    border:2px dashed rgba(255,255,255,0.15);
+    border-radius:14px;
+    color:var(--muted);font-size:.9rem;cursor:pointer;
+    transition:background .15s, border-color .15s, color .15s;
+  }
+  .empty-state:active{
+    background:rgba(77,159,255,0.10);
+    border-color:var(--select);
+    color:var(--select);
+  }
+  .empty-state .big-plus{
+    width:60px;height:60px;border-radius:50%;
+    background:linear-gradient(135deg, rgba(77,159,255,0.85), rgba(120,180,255,0.75));
+    border:1px solid rgba(140,190,255,0.5);
+    color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-size:2rem;font-weight:300;line-height:1;
+  }
+
+  .add-end-btn{
+    flex-basis:100%;width:100%;padding:14px;margin-top:10px;
+    background:rgba(255,255,255,0.03);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    border:2px dashed rgba(255,255,255,0.15);
+    border-radius:12px;
+    color:var(--muted);
+    font-size:.85rem;font-weight:600;cursor:pointer;
+    font-family:inherit;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    transition:background .15s, border-color .15s, color .15s;
+  }
+  .add-end-btn:active{
+    background:rgba(77,159,255,0.12);
+    border-color:var(--select);
+    color:var(--select);
+  }
+
+  .fab-add{
+    position:absolute;bottom:70px;right:16px;
+    width:56px;height:56px;border-radius:50%;
+    background:linear-gradient(135deg, rgba(255,77,77,0.9), rgba(255,120,120,0.8));
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    border:1px solid rgba(255,150,150,0.45);
+    color:#fff;
+    font-size:1.8rem;font-weight:300;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;z-index:50;
+    line-height:1;
+    transition:transform .15s, background .15s;
+  }
+  .fab-add:active{
+    transform:scale(.92);
+    background:linear-gradient(135deg, rgba(255,77,77,1), rgba(255,120,120,0.9));
+  }
+
+  .insert-hint{
+    position:absolute;top:8px;left:50%;
+    transform:translateX(-50%);
+    background:rgba(77,159,255,0.15);
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    border:1px solid rgba(140,190,255,0.35);
+    color:#9ecfff;
+    font-size:.7rem;font-weight:600;
+    padding:4px 12px;border-radius:999px;
+    z-index:15;white-space:nowrap;pointer-events:none;
+    max-width:90%;overflow:hidden;text-overflow:ellipsis;
+  }
+  .insert-hint.hidden{display:none;}
+
+  .el-title{font-size:1.2em;font-weight:700;color:var(--el-color,#e5e5e5);}
+  .el-subtitle{font-size:1.35em;font-weight:800;color:var(--el-color,var(--accent));}
+  .el-text{font-size:.95em;color:var(--el-color,#dddddd);line-height:1.5;}
+  .el-quote{
+    border-left:.25em solid var(--el-color,var(--accent));
+    padding:.625em 1em;text-align:left;font-style:italic;
+    color:#dddddd;font-size:1em;
+    background:rgba(255,77,77,0.06);
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+    border-radius:0 .5em .5em 0;
+  }
+  .el-highlight{
+    display:inline-block;
+    background:rgba(245,197,66,0.15);
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+    border:1px solid rgba(245,197,66,0.3);
+    color:var(--el-color,var(--yellow));
+    padding:.375em .875em;border-radius:.5em;
+    font-weight:600;font-size:.95em;
+  }
+  .el-label{
+    display:inline-block;
+    background:var(--el-color,var(--purple));
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+    color:#fff;
+    padding:.25em .75em;border-radius:.5em;
+    font-size:.78em;font-weight:700;
+    text-transform:uppercase;letter-spacing:.5px;
+  }
+  .el-badge{
+    display:inline-block;
+    padding:.5625em 1.125em;
+    background:rgba(255,255,255,0.04);
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+    border:.125em solid var(--el-color,var(--yellow));
+    border-radius:999px;
+    color:var(--el-color,var(--yellow));
+    font-weight:700;font-size:.9em;
+  }
+  .el-button{
+    display:inline-block;
+    padding:.6875em 1.375em;
+    border-radius:.625em;
+    background:var(--el-color,var(--blue));
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+    color:#fff;font-weight:700;
+    border:1px solid rgba(255,255,255,0.15);
+    font-family:inherit;font-size:.9em;cursor:pointer;
+  }
+  .el-button-secondary{
+    display:inline-block;
+    padding:.6875em 1.375em;
+    border-radius:.625em;
+    background:rgba(255,255,255,0.04);
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+    color:var(--el-color,var(--blue));
+    font-weight:700;
+    border:.125em solid var(--el-color,var(--blue));
+    font-family:inherit;font-size:.9em;cursor:pointer;
+  }
+  .el-card{
+    background:rgba(255,255,255,0.05);
+    backdrop-filter:blur(16px) saturate(180%);
+    -webkit-backdrop-filter:blur(16px) saturate(180%);
+    border:1px solid var(--border);
+    border-radius:.875em;
+    padding:1em;text-align:left;
+  }
+  .el-card .card-title{font-weight:700;font-size:1em;color:var(--el-color,#fff);margin-bottom:.375em;}
+  .el-card .card-text{font-size:.85em;color:var(--muted);line-height:1.4;}
+
+  .el-alert{
+    padding:.75em 1em;border-radius:.625em;
+    text-align:left;font-size:.9em;
+    display:flex;gap:.625em;align-items:flex-start;
+    background:rgba(77,159,255,0.10);
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    border:1px solid rgba(77,159,255,0.2);
+    border-left:.25em solid var(--el-color,var(--blue));
+    color:#cce4ff;
+  }
+  .el-alert.warning{background:rgba(245,197,66,0.10);border-color:rgba(245,197,66,0.25);border-left-color:var(--el-color,var(--yellow));color:#ffe9a8;}
+  .el-alert.danger{background:rgba(255,77,77,0.10);border-color:rgba(255,77,77,0.25);border-left-color:var(--el-color,var(--accent));color:#ffc9c9;}
+  .el-alert.success{background:rgba(39,201,63,0.10);border-color:rgba(39,201,63,0.25);border-left-color:var(--el-color,var(--green));color:#c4f5cc;}
+
+  .el-bar{width:100%;height:.625em;background:rgba(255,255,255,0.08);border-radius:999px;overflow:hidden;}
+  .el-bar > span{display:block;height:100%;background:var(--el-color,var(--accent));border-radius:999px;}
+
+  .el-code{
+    background:rgba(0,0,0,0.4);
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    border:1px solid var(--border);
+    border-radius:.625em;padding:.75em;
+    font-family:var(--mono);font-size:.78em;
+    color:#9fef9f;text-align:left;overflow-x:auto;white-space:pre;
+  }
+  .el-image{width:100%;border-radius:.625em;display:block;}
+
+  .el-terminal{
+    background:rgba(0,0,0,0.5);
+    backdrop-filter:blur(16px);
+    -webkit-backdrop-filter:blur(16px);
+    border-radius:.75em;overflow:hidden;
+    border:1px solid var(--border);
+    text-align:left;width:100%;
+  }
+  .el-terminal .bar{background:rgba(255,255,255,0.05);padding:.5em .75em;display:flex;align-items:center;gap:.5em;position:relative;border-bottom:1px solid var(--border-soft);}
+  .el-terminal .dot{width:.7em;height:.7em;border-radius:50%;}
+  .el-terminal .dot.r{background:#ff5f56;} .el-terminal .dot.y{background:#ffbd2e;} .el-terminal .dot.g{background:#27c93f;}
+  .el-terminal .title{position:absolute;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:.7em;color:var(--muted);}
+  .el-terminal .body{padding:.875em;font-family:var(--mono);font-size:.9em;color:#eee;display:flex;gap:.375em;align-items:center;flex-wrap:wrap;word-break:break-all;}
+  .el-terminal .prompt{color:var(--green);font-weight:700;}
+  .el-terminal .cursor{display:inline-block;width:.5em;height:1.1em;background:var(--green);animation:blink 1s steps(1) infinite;vertical-align:middle;}
+  @keyframes blink{50%{opacity:0;}}
+
+  .el-list{text-align:left;padding-left:1.375em;color:#ddd;font-size:.95em;line-height:1.8;}
+  .el-list li{list-style:none;position:relative;padding-left:1em;}
+  .el-list li::before{content:'•';position:absolute;left:0;color:var(--el-color,var(--accent));font-weight:700;}
+
+  .el-list-numbered{text-align:left;counter-reset:item;color:#ddd;font-size:.95em;line-height:1.8;}
+  .el-list-numbered li{list-style:none;counter-increment:item;position:relative;padding-left:1.625em;}
+  .el-list-numbered li::before{
+    content:counter(item);position:absolute;left:0;
+    background:var(--el-color,var(--blue));color:#fff;
+    width:1.25em;height:1.25em;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:.7em;font-weight:700;top:.25em;
+  }
+
+  .el-list-check{text-align:left;color:#ddd;font-size:.95em;line-height:1.8;}
+  .el-list-check li{list-style:none;position:relative;padding-left:1.75em;}
+  .el-list-check li::before{content:'✓';position:absolute;left:0;color:var(--el-color,var(--green));font-weight:700;font-size:1em;}
+
+  .el-separator{border:none;border-top:1px solid var(--border);width:100%;}
+  .el-spacer{height:20px;width:100%;}
+  .el-icon{font-size:3em;line-height:1;display:inline-block;color:var(--el-color,#fff);}
+
+  .el-counter{font-size:2.5em;font-weight:800;color:var(--el-color,var(--accent));font-family:var(--mono);}
+  .el-counter small{display:block;font-size:.32em;color:var(--muted);font-weight:400;font-family:var(--font);text-transform:uppercase;letter-spacing:1px;margin-top:.16em;}
+
+  .el-circle-progress{position:relative;width:6.25em;height:6.25em;margin:0 auto;}
+  .el-circle-progress svg{transform:rotate(-90deg);width:100%;height:100%;}
+  .el-circle-progress .bg{fill:none;stroke:rgba(255,255,255,0.08);stroke-width:8;}
+  .el-circle-progress .fg{fill:none;stroke:var(--el-color,var(--accent));stroke-width:8;stroke-linecap:round;}
+  .el-circle-progress .value{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.1em;font-weight:700;color:#fff;font-family:var(--mono);}
+
+  .el-table{
+    width:100%;border-collapse:collapse;font-size:.85em;text-align:left;
+    background:rgba(255,255,255,0.03);
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    border:1px solid var(--border);
+    border-radius:.5em;overflow:hidden;
+  }
+  .el-table th,.el-table td{padding:.5em .625em;border-bottom:1px solid var(--border-soft);}
+  .el-table th{background:rgba(255,255,255,0.05);color:#fff;font-weight:700;}
+  .el-table td{color:#ccc;}
+  .el-table tr:last-child td{border-bottom:none;}
+
+  .el-video{width:100%;aspect-ratio:16/9;border-radius:.625em;overflow:hidden;background:#000;border:1px solid var(--border);}
+  .el-video iframe{width:100%;height:100%;border:none;}
+
+  .el-inline-code{
+    display:inline-block;
+    background:rgba(0,0,0,0.4);
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+    border:1px solid var(--border);
+    padding:.1875em .5em;border-radius:.375em;
+    font-family:var(--mono);font-size:.85em;
+    color:var(--el-color,#9fef9f);
+  }
+
+  .chart-svg{width:100%;height:auto;display:block;overflow:visible;}
+  .chart-bar{transform-box:fill-box;transform-origin:center bottom;transform:scaleY(1);}
+  .chart-hbar{transform-box:fill-box;transform-origin:left center;transform:scaleX(1);}
+  .chart-line-path{stroke-dasharray:1;stroke-dashoffset:0;}
+  .chart-area-path{opacity:1;}
+  .chart-point{opacity:1;}
+  .chart-slice{opacity:1;}
+  .chart-value{opacity:1;}
+  .chart-timeline-dot{transform-box:fill-box;transform-origin:center;transform:scale(1);}
+  .chart-timeline-line{stroke-dasharray:1;stroke-dashoffset:0;}
+  .chart-radar-shape{transform-box:fill-box;transform-origin:center;transform:scale(1);opacity:1;}
+  .chart-funnel-slice{transform-box:fill-box;transform-origin:center top;transform:scaleY(1);opacity:1;}
+
+  .stage.presentation .chart-bar{transform:scaleY(0);transition:transform .9s cubic-bezier(.4,0,.2,1);}
+  .stage.presentation .chart-bar.play{transform:scaleY(1);}
+  .stage.presentation .chart-hbar{transform:scaleX(0);transition:transform .9s cubic-bezier(.4,0,.2,1);}
+  .stage.presentation .chart-hbar.play{transform:scaleX(1);}
+  .stage.presentation .chart-line-path{stroke-dashoffset:1;transition:stroke-dashoffset 1.4s ease;}
+  .stage.presentation .chart-line-path.play{stroke-dashoffset:0;}
+  .stage.presentation .chart-area-path{opacity:0;transition:opacity 1s ease .5s;}
+  .stage.presentation .chart-area-path.play{opacity:1;}
+  .stage.presentation .chart-point{opacity:0;transition:opacity .4s ease .8s;}
+  .stage.presentation .chart-point.play{opacity:1;}
+  .stage.presentation .chart-slice{opacity:0;transition:opacity .5s ease;}
+  .stage.presentation .chart-slice.play{opacity:1;}
+  .stage.presentation .chart-value{opacity:0;transition:opacity .4s ease .7s;}
+  .stage.presentation .chart-value.play{opacity:1;}
+  .stage.presentation .chart-gauge-arc{transition:stroke-dashoffset 1.4s cubic-bezier(.4,0,.2,1);}
+  .stage.presentation .chart-timeline-dot{transform:scale(0);transition:transform .5s cubic-bezier(.34,1.56,.64,1);}
+  .stage.presentation .chart-timeline-dot.play{transform:scale(1);}
+  .stage.presentation .chart-timeline-line{stroke-dashoffset:1;transition:stroke-dashoffset .9s ease;}
+  .stage.presentation .chart-timeline-line.play{stroke-dashoffset:0;}
+  .stage.presentation .chart-radar-shape{transform:scale(0);opacity:0;transition:transform .9s cubic-bezier(.34,1.56,.64,1),opacity .5s ease;}
+  .stage.presentation .chart-radar-shape.play{transform:scale(1);opacity:1;}
+  .stage.presentation .chart-funnel-slice{transform:scaleY(0);opacity:0;transition:transform .6s ease,opacity .4s ease;}
+  .stage.presentation .chart-funnel-slice.play{transform:scaleY(1);opacity:1;}
+
+  .chart-empty{
+    color:var(--muted);font-size:.85em;text-align:center;padding:1.5em;
+    background:rgba(255,255,255,0.02);
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+    border:1px dashed rgba(255,255,255,0.15);
+    border-radius:.625em;
+  }
+
+  .progress{
+    position:absolute;top:0;left:0;height:3px;
+    background:linear-gradient(90deg, var(--accent), var(--purple));
+    width:0%;transition:width .3s;
+    z-index:10;
+  }
+  .nav{
+    position:absolute;bottom:0;left:0;right:0;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:10px 16px;
+    background:linear-gradient(to top, rgba(0,0,0,0.5), transparent);
+    z-index:10;
+  }
+  .nav button{
+    background:rgba(255,255,255,0.08);
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    border:1px solid var(--border);
+    color:#fff;font-size:1.1rem;
+    width:40px;height:40px;border-radius:50%;
+    cursor:pointer;font-family:inherit;
+    transition:background .15s;
+  }
+  .nav button:hover{background:rgba(255,255,255,0.14);}
+  .nav button:active{background:rgba(255,255,255,0.2);}
+  .counter{font-family:var(--mono);font-size:.78rem;color:var(--muted);}
+
+  .add-panel{
+    background:rgba(255,255,255,0.03);
+    backdrop-filter:blur(24px) saturate(180%);
+    -webkit-backdrop-filter:blur(24px) saturate(180%);
+    border-top:1px solid var(--border-soft);
+    padding:10px;display:none;gap:6px;flex-wrap:wrap;flex-shrink:0;
+    max-height:45vh;overflow-y:auto;
+    position:relative;z-index:100;
+  }
+  .add-panel.open{display:flex;}
+  .panel-section{
+    width:100%;font-size:.7rem;color:var(--muted);
+    text-transform:uppercase;letter-spacing:1.2px;
+    margin:6px 0 2px;font-weight:700;
+  }
+
+  .modal{
+    position:fixed;inset:0;
+    background:rgba(0,0,0,0.5);
+    backdrop-filter:blur(16px);
+    -webkit-backdrop-filter:blur(16px);
+    display:none;align-items:center;justify-content:center;
+    padding:14px;z-index:200;overflow-y:auto;
+  }
+  .modal.open{display:flex;}
+  .modal-box{
+    background:rgba(20,20,24,0.75);
+    backdrop-filter:blur(30px) saturate(180%);
+    -webkit-backdrop-filter:blur(30px) saturate(180%);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:18px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;
+  }
+  .modal-box h2{font-size:1rem;margin-bottom:12px;color:var(--fg);font-weight:700;letter-spacing:.2px;}
+  .modal-box label{display:block;font-size:.75rem;color:var(--muted);margin:10px 0 4px;font-weight:600;}
+  .modal-box input,.modal-box textarea,.modal-box select{
+    width:100%;
+    background:rgba(0,0,0,0.35);
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+    border:1px solid var(--border);
+    color:var(--fg);
+    padding:9px;border-radius:10px;
+    font-family:var(--mono);font-size:.85rem;
+    transition:border-color .15s, background .15s;
+  }
+  .modal-box input:focus,.modal-box textarea:focus,.modal-box select:focus{
+    outline:none;
+    border-color:rgba(77,159,255,0.5);
+    background:rgba(0,0,0,0.5);
+  }
+  .modal-box textarea{min-height:70px;resize:vertical;}
+  .modal-actions{display:flex;gap:8px;margin-top:16px;justify-content:flex-end;}
+
+  .color-row{display:flex;gap:8px;align-items:center;}
+  .color-row select{flex:1;}
+  .color-row input[type=color]{
+    width:46px;height:38px;padding:2px;cursor:pointer;
+    display:none;
+    background:rgba(0,0,0,0.35);
+    border:1px solid var(--border);
+    border-radius:10px;
+  }
+  .color-row input[type=color].visible{display:block;}
+
+  .trans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;}
+  .trans-card{
+    background:rgba(255,255,255,0.04);
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    border:2px solid var(--border-soft);
+    border-radius:12px;
+    padding:10px 6px;cursor:pointer;
+    color:var(--fg);font-family:inherit;
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+    transition:border-color .15s, background .15s;
+  }
+  .trans-card:hover{background:rgba(255,255,255,0.08);}
+  .trans-card.active{border-color:var(--accent);background:rgba(255,77,77,0.12);}
+  .trans-preview{width:44px;height:30px;border-radius:6px;background:rgba(0,0,0,0.4);position:relative;overflow:hidden;border:1px solid var(--border-soft);}
+  .trans-preview .box{position:absolute;inset:4px;background:linear-gradient(135deg, var(--accent), rgba(255,120,120,0.8));border-radius:3px;}
+  .trans-card[data-trans="slide"]:hover .box,.trans-card[data-trans="slide"].active .box{animation:tp-slide 1.2s ease infinite;}
+  .trans-card[data-trans="fade"]:hover .box,.trans-card[data-trans="fade"].active .box{animation:tp-fade 1.2s ease infinite;}
+  .trans-card[data-trans="zoom"]:hover .box,.trans-card[data-trans="zoom"].active .box{animation:tp-zoom 1.2s ease infinite;}
+  .trans-card[data-trans="flip"]:hover .box,.trans-card[data-trans="flip"].active .box{animation:tp-flip 1.2s ease infinite;}
+  .trans-card[data-trans="slide-up"]:hover .box,.trans-card[data-trans="slide-up"].active .box{animation:tp-slide-up 1.2s ease infinite;}
+  .trans-card[data-trans="none"]:hover .box,.trans-card[data-trans="none"].active .box{animation:none;}
+  @keyframes tp-slide{0%{transform:translateX(100%);opacity:0;}30%{transform:translateX(0);opacity:1;}70%{transform:translateX(0);opacity:1;}100%{transform:translateX(-100%);opacity:0;}}
+  @keyframes tp-fade{0%{opacity:0;}30%{opacity:1;}70%{opacity:1;}100%{opacity:0;}}
+  @keyframes tp-zoom{0%{transform:scale(0.2);opacity:0;}30%{transform:scale(1);opacity:1;}70%{transform:scale(1);opacity:1;}100%{transform:scale(1.6);opacity:0;}}
+  @keyframes tp-flip{0%{transform:perspective(200px) rotateY(90deg);opacity:0;}30%{transform:perspective(200px) rotateY(0);opacity:1;}70%{transform:perspective(200px) rotateY(0);opacity:1;}100%{transform:perspective(200px) rotateY(-90deg);opacity:0;}}
+  @keyframes tp-slide-up{0%{transform:translateY(100%);opacity:0;}30%{transform:translateY(0);opacity:1;}70%{transform:translateY(0);opacity:1;}100%{transform:translateY(-100%);opacity:0;}}
+  .trans-card .trans-label{font-size:.7rem;font-weight:600;}
+
+  .export-grid{display:grid;grid-template-columns:1fr;gap:10px;margin-top:8px;}
+  .export-card{
+    background:rgba(255,255,255,0.04);
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    border:2px solid var(--border-soft);
+    border-radius:12px;
+    padding:14px 16px;cursor:pointer;
+    color:var(--fg);font-family:inherit;
+    display:flex;align-items:center;gap:14px;
+    transition:border-color .15s, background .15s;
+    text-align:left;width:100%;
+  }
+  .export-card:hover{background:rgba(255,255,255,0.08);border-color:rgba(77,159,255,0.4);}
+  .export-card .exp-icon{
+    font-size:1.6rem;width:38px;height:38px;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(255,255,255,0.05);
+    border:1px solid var(--border-soft);
+    border-radius:10px;flex-shrink:0;
+  }
+  .export-card .exp-text{flex:1;}
+  .export-card .exp-title{font-size:.9rem;font-weight:700;color:#fff;}
+  .export-card .exp-desc{font-size:.72rem;color:var(--muted);margin-top:2px;line-height:1.35;}
+
+  @keyframes anim-fade-up{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+  @keyframes anim-fade-in{from{opacity:0;}to{opacity:1;}}
+  @keyframes anim-slide-left{from{opacity:0;transform:translateX(-40px);}to{opacity:1;transform:translateX(0);}}
+  @keyframes anim-slide-right{from{opacity:0;transform:translateX(40px);}to{opacity:1;transform:translateX(0);}}
+  @keyframes anim-zoom-bounce{0%{opacity:0;transform:scale(0.3);}60%{opacity:1;transform:scale(1.15);}100%{opacity:1;transform:scale(1);}}
+  @keyframes anim-shake{0%,100%{transform:translateX(0);}20%{transform:translateX(-8px);}40%{transform:translateX(8px);}60%{transform:translateX(-5px);}80%{transform:translateX(5px);}}
+  @keyframes anim-rotate-zoom{from{opacity:0;transform:scale(0.3) rotate(-90deg);}to{opacity:1;transform:scale(1) rotate(0);}}
+
+  .stage.presentation .anim-el{opacity:0;}
+  .stage.presentation .anim-el.anim-play{animation-duration:.7s;animation-fill-mode:both;animation-timing-function:cubic-bezier(.4,0,.2,1);}
+  .stage.presentation .anim-el.anim-fade-up.anim-play{animation-name:anim-fade-up;}
+  .stage.presentation .anim-el.anim-fade-in.anim-play{animation-name:anim-fade-in;}
+  .stage.presentation .anim-el.anim-slide-left.anim-play{animation-name:anim-slide-left;}
+  .stage.presentation .anim-el.anim-slide-right.anim-play{animation-name:anim-slide-right;}
+  .stage.presentation .anim-el.anim-zoom-bounce.anim-play{animation-name:anim-zoom-bounce;}
+  .stage.presentation .anim-el.anim-shake.anim-play{animation-name:anim-shake;}
+  .stage.presentation .anim-el.anim-rotate-zoom.anim-play{animation-name:anim-rotate-zoom;}
+
+  .stage.presentation .stagger-item{opacity:0;transform:translateX(-20px);transition:opacity .4s ease,transform .4s ease;}
+  .stage.presentation .stagger-item.stagger-play{opacity:1;transform:translateX(0);}
+  .stage.presentation .anim-separator{transform-origin:left center;transform:scaleX(0);transition:transform .8s cubic-bezier(.4,0,.2,1);}
+  .stage.presentation .anim-separator.anim-play{transform:scaleX(1);}
+
+  .replay-btn{
+    position:absolute;bottom:70px;left:16px;
+    width:44px;height:44px;border-radius:50%;
+    background:rgba(255,255,255,0.08);
+    backdrop-filter:blur(16px);
+    -webkit-backdrop-filter:blur(16px);
+    border:1px solid var(--border);
+    color:#fff;font-size:1.1rem;
+    display:none;align-items:center;justify-content:center;
+    cursor:pointer;z-index:50;
+    transition:background .15s;
+  }
+  .replay-btn:hover{background:rgba(255,255,255,0.14);}
+  .replay-btn:active{background:rgba(255,255,255,0.2);}
+  .stage.presentation .replay-btn{display:flex;}
+
+  @keyframes trans-slide-forward{from{transform:translateX(40%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+  @keyframes trans-slide-back{from{transform:translateX(-40%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+  @keyframes trans-fade{from{opacity:0;}to{opacity:1;}}
+  @keyframes trans-zoom{from{transform:scale(0.8);opacity:0;}to{transform:scale(1);opacity:1;}}
+  @keyframes trans-flip{from{transform:perspective(900px) rotateY(45deg);opacity:0;}to{transform:perspective(900px) rotateY(0);opacity:1;}}
+  @keyframes trans-slide-up{from{transform:translateY(40%);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  .slide.trans-in.trans-slide{animation:trans-slide-forward .5s ease;}
+  .slide.trans-in.trans-slide.back{animation:trans-slide-back .5s ease;}
+  .slide.trans-in.trans-fade{animation:trans-fade .5s ease;}
+  .slide.trans-in.trans-zoom{animation:trans-zoom .5s ease;}
+  .slide.trans-in.trans-flip{animation:trans-flip .5s ease;}
+  .slide.trans-in.trans-slide-up{animation:trans-slide-up .5s ease;}
+
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.12);border-radius:3px;}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.2);}
+</style>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4b6cb7">
+<link rel="apple-touch-icon" href="icon.png"></head>
+<body>
+
+<div class="app">
+  <div class="toolbar">
+    <h1>🎬 Slide Builder</h1>
+    <button class="btn green" onclick="addSlide()">+ Slide</button>
+    <button class="btn primary" onclick="openAddPanel()">➕ Élément</button>
+    <button class="btn purple" onclick="openTransitionModal()">🎞 Transition</button>
+    <button class="btn" onclick="togglePresentation()" id="presBtn">▶ Présentation</button>
+    <button class="btn blue" onclick="openExportModal()">📦 Export</button>
+  </div>
+
+  <div class="stage-wrap">
+    <div class="stage" id="stage">
+      <div class="html-editor" id="htmlEditor">
+        <div id="slidesContainer"></div>
+      </div>
+      <button class="fab-add" onclick="openAddPanel()">+</button>
+      <button class="replay-btn" onclick="replayAnimations()" title="Rejouer">↻</button>
+      <div class="progress" id="progress"></div>
+      <div class="insert-hint hidden" id="insertHint"></div>
+      <div class="nav">
+        <button onclick="prev()">‹</button>
+        <span class="counter" id="counter">1 / 1</span>
+        <button onclick="next()">›</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="add-panel" id="addPanel"></div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <h2 id="modalTitle">Configurer</h2>
+    <div id="modalFields"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Annuler</button>
+      <button class="btn primary" onclick="confirmElement()">Valider</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="transModal">
+  <div class="modal-box">
+    <h2>Choisir une transition</h2>
+    <div class="trans-grid" id="transGrid"></div>
+    <div class="modal-actions">
+      <button class="btn primary" onclick="closeTransitionModal()">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="exportModal">
+  <div class="modal-box">
+    <h2>📦 Export / Import</h2>
+    <div class="export-grid">
+      <button class="export-card primary" onclick="exportAsHTML()">
+        <div class="exp-icon">🌐</div>
+        <div class="exp-text"><div class="exp-title">Exporter en HTML</div>
+        <div class="exp-desc">Présentation autonome, plein écran, sans outils.</div></div>
+      </button>
+      <button class="export-card up" onclick="exportAsJSON()">
+        <div class="exp-icon">⬆️</div>
+        <div class="exp-text"><div class="exp-title">JSON Up — Exporter</div>
+        <div class="exp-desc">Télécharge les données .json pour les réutiliser.</div></div>
+      </button>
+      <button class="export-card down" onclick="importJSON()">
+        <div class="exp-icon">⬇️</div>
+        <div class="exp-text"><div class="exp-title">JSON Down — Importer</div>
+        <div class="exp-desc">Choisis un fichier .json pour remplacer les slides.</div></div>
+      </button>
+    </div>
+    <input type="file" id="jsonFileInput" accept=".json,application/json" style="display:none">
+    <div class="modal-actions">
+      <button class="btn" onclick="closeExportModal()">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   ÉTAT
+   ============================================================ */
+const S = {
+  slides: [], currentSlide: 0, pendingType: null, editingIndex: null,
+  selectedIndex: null, insertPosition: 'end',
+  presentationMode: false,
+  transitionType: 'slide',
+  transitions: [
+    {id:'slide', label:'Slide'}, {id:'fade', label:'Fondu'}, {id:'zoom', label:'Zoom'},
+    {id:'flip', label:'Flip'}, {id:'slide-up', label:'Slide Up'}, {id:'none', label:'Aucune'}
+  ],
+  touchX: 0, playedAnimations: {}, animToken: 0
+};
+
+const SIZE_VALUES = { xs:0.6, s:0.8, m:1, l:1.3, xl:1.7, xxl:2.2 };
+const SIZE_SUPPORTED = ['title','subtitle','text','quote','highlight','label','badge','button','button-secondary','card','alert','counter','icon','list','list-numbered','list-check'];
+const COLOR_SUPPORTED = ['title','subtitle','text','quote','highlight','label','badge','button','button-secondary','alert','bar','circle-progress','counter','icon','inline-code','list','list-numbered','list-check'];
+const CHART_TYPES = ['chart-bars','chart-hbars','chart-line','chart-area','chart-pie','chart-donut','chart-gauge','chart-timeline','chart-radar','chart-stacked','chart-compare','chart-funnel'];
+const CHART_COLOR_SUPPORTED = CHART_TYPES;
+
+/* ============================================================
+   CHART ENGINE
+   ============================================================ */
+const CHART_PALETTE = ['#ff4d4d','#4d9fff','#27c93f','#f5c542','#a78bfa','#fb923c','#06b6d4','#ec4899'];
+
+function parseChartData(str){
+  if(!str) return [];
+  return str.split('\n').map(l=>l.trim()).filter(Boolean).map(line=>{
+    const i = line.lastIndexOf(':');
+    if(i < 0) return null;
+    const label = line.slice(0, i).trim();
+    const vals = line.slice(i+1).split(',').map(v=>parseFloat(v.trim())).filter(v=>!isNaN(v));
+    return vals.length ? { label, values: vals } : null;
+  }).filter(Boolean);
+}
+function chartColor(i, base){
+  return (base && i === 0) ? base : CHART_PALETTE[i % CHART_PALETTE.length];
+}
+function svgWrap(inner, vbH){
+  return `<svg class="chart-svg" viewBox="0 0 400 ${vbH}" preserveAspectRatio="xMidYMid meet">${inner}</svg>`;
+}
+function emptyChart(){ return '<div class="chart-empty">Aucune donnée — format : Label : valeur</div>'; }
+function polarToXY(cx, cy, r, deg){
+  const rad = (deg - 90) * Math.PI / 180;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+function arcPath(cx, cy, r, startDeg, endDeg){
+  const s = polarToXY(cx, cy, r, endDeg);
+  const e = polarToXY(cx, cy, r, startDeg);
+  const large = (endDeg - startDeg) <= 180 ? 0 : 1;
+  return `M ${cx} ${cy} L ${s.x} ${s.y} A ${r} ${r} 0 ${large} 0 ${e.x} ${e.y} Z`;
+}
+
+function renderChartBars(data, base){
+  if(!data.length) return emptyChart();
+  const W=400, H=240, P=30;
+  const maxV = Math.max(...data.map(d=>d.values[0]), 1);
+  const gap = (W - P*2) / data.length;
+  const barW = Math.min(gap * 0.65, 50);
+  let s = `<line x1="${P}" y1="${H-P}" x2="${W-P}" y2="${H-P}" stroke="#333"/>`;
+  data.forEach((d, i)=>{
+    const v = d.values[0];
+    const h = Math.max(2, (v/maxV) * (H - P*2 - 20));
+    const x = P + gap*i + (gap - barW)/2;
+    const y = H - P - h;
+    const c = chartColor(i, base);
+    s += `<rect class="chart-bar" style="transition-delay:${i*100}ms" x="${x}" y="${y}" width="${barW}" height="${h}" fill="${c}" rx="3"/>`;
+    s += `<text x="${x+barW/2}" y="${H-P+16}" text-anchor="middle" font-size="11" fill="#aaa">${escapeHtml(d.label)}</text>`;
+    s += `<text class="chart-value" style="transition-delay:${i*100+500}ms" x="${x+barW/2}" y="${y-6}" text-anchor="middle" font-size="11" fill="#fff" font-weight="600">${v}</text>`;
+  });
+  return svgWrap(s, H);
+}
+
+function renderChartHbars(data, base){
+  if(!data.length) return emptyChart();
+  const W=400, P=30, rowH=32;
+  const H = Math.max(180, data.length * rowH + 40);
+  const maxV = Math.max(...data.map(d=>d.values[0]), 1);
+  const labelW = 90;
+  const barMaxW = W - P - labelW - 50;
+  let s = '';
+  data.forEach((d, i)=>{
+    const v = d.values[0];
+    const bw = Math.max(2, (v/maxV) * barMaxW);
+    const y = P + i * rowH;
+    const c = chartColor(i, base);
+    s += `<text x="${P-6}" y="${y+16}" text-anchor="end" font-size="12" fill="#ccc">${escapeHtml(d.label)}</text>`;
+    s += `<rect x="${labelW}" y="${y+4}" width="${barMaxW}" height="20" fill="#1a1a1a" rx="4"/>`;
+    s += `<rect class="chart-hbar" style="transition-delay:${i*100}ms" x="${labelW}" y="${y+4}" width="${bw}" height="20" fill="${c}" rx="4"/>`;
+    s += `<text class="chart-value" style="transition-delay:${i*100+500}ms" x="${labelW+bw+8}" y="${y+19}" font-size="12" fill="#fff" font-weight="600">${v}</text>`;
+  });
+  return svgWrap(s, H);
+}
+
+function renderChartLine(data, base){
+  if(!data.length) return emptyChart();
+  const W=400, H=240, P=30;
+  const maxV = Math.max(...data.map(d=>d.values[0]), 1);
+  const c = base || CHART_PALETTE[1];
+  const n = data.length;
+  const pts = data.map((d, i)=>{
+    const x = P + (W-P*2) * (n>1 ? i/(n-1) : 0.5);
+    const y = H-P - (d.values[0]/maxV) * (H-P*2-20);
+    return { x, y, v: d.values[0], label: d.label };
+  });
+  let s = `<line x1="${P}" y1="${H-P}" x2="${W-P}" y2="${H-P}" stroke="#333"/>`;
+  s += `<line x1="${P}" y1="${P}" x2="${P}" y2="${H-P}" stroke="#333"/>`;
+  const dAttr = 'M ' + pts.map(p=>`${p.x} ${p.y}`).join(' L ');
+  s += `<path class="chart-line-path" d="${dAttr}" fill="none" stroke="${c}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" pathLength="1"/>`;
+  pts.forEach((p, i)=>{
+    s += `<circle class="chart-point" style="transition-delay:${800+i*100}ms" cx="${p.x}" cy="${p.y}" r="4" fill="${c}"/>`;
+    s += `<text x="${p.x}" y="${H-P+16}" text-anchor="middle" font-size="11" fill="#aaa">${escapeHtml(p.label)}</text>`;
+    s += `<text class="chart-value" style="transition-delay:${800+i*100}ms" x="${p.x}" y="${p.y-10}" text-anchor="middle" font-size="11" fill="#fff" font-weight="600">${p.v}</text>`;
+  });
+  return svgWrap(s, H);
+}
+
+function renderChartArea(data, base){
+  if(!data.length) return emptyChart();
+  const W=400, H=240, P=30;
+  const maxV = Math.max(...data.map(d=>d.values[0]), 1);
+  const c = base || CHART_PALETTE[1];
+  const n = data.length;
+  const pts = data.map((d, i)=>{
+    const x = P + (W-P*2) * (n>1 ? i/(n-1) : 0.5);
+    const y = H-P - (d.values[0]/maxV) * (H-P*2-20);
+    return { x, y, v: d.values[0], label: d.label };
+  });
+  let s = `<line x1="${P}" y1="${H-P}" x2="${W-P}" y2="${H-P}" stroke="#333"/>`;
+  const line = 'M ' + pts.map(p=>`${p.x} ${p.y}`).join(' L ');
+  const area = line + ` L ${pts[pts.length-1].x} ${H-P} L ${pts[0].x} ${H-P} Z`;
+  s += `<path class="chart-area-path" d="${area}" fill="${c}" fill-opacity="0.25" stroke="none"/>`;
+  s += `<path class="chart-line-path" d="${line}" fill="none" stroke="${c}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" pathLength="1"/>`;
+  pts.forEach((p, i)=>{
+    s += `<circle class="chart-point" style="transition-delay:${800+i*100}ms" cx="${p.x}" cy="${p.y}" r="4" fill="${c}"/>`;
+    s += `<text x="${p.x}" y="${H-P+16}" text-anchor="middle" font-size="11" fill="#aaa">${escapeHtml(p.label)}</text>`;
+  });
+  return svgWrap(s, H);
+}
+
+function renderChartPie(data, base, donut){
+  if(!data.length) return emptyChart();
+  const SZ=240, cx=SZ/2, cy=SZ/2, r=SZ/2-10;
+  const total = data.reduce((a, d)=>a + Math.abs(d.values[0]), 0) || 1;
+  let angle = 0;
+  let s = '';
+  data.forEach((d, i)=>{
+    const v = Math.abs(d.values[0]);
+    const sweep = (v/total) * 360;
+    const c = chartColor(i, base);
+    const path = arcPath(cx, cy, r, angle, angle + sweep);
+    s += `<path class="chart-slice" style="transition-delay:${i*100}ms" d="${path}" fill="${c}" stroke="#0a0a0a" stroke-width="2"/>`;
+    const ly = 30 + i * 26;
+    s += `<text class="chart-value" style="transition-delay:${i*100+400}ms" x="270" y="${ly}" font-size="12" fill="#ccc">${escapeHtml(d.label)} : ${Math.round(v/total*100)}%</text>`;
+    s += `<rect class="chart-slice" style="transition-delay:${i*100}ms" x="252" y="${ly-10}" width="12" height="12" fill="${c}" rx="2"/>`;
+    angle += sweep;
+  });
+  if(donut){
+    s += `<circle cx="${cx}" cy="${cy}" r="${r*0.55}" fill="#0a0a0a"/>`;
+  }
+  return svgWrap(s, SZ);
+}
+
+function renderChartGauge(data, base){
+  if(!data.length) return emptyChart();
+  const W=400, H=220, cx=W/2, cy=170, r=130;
+  const v = Math.max(0, Math.min(100, data[0].values[0]));
+  const c = base || CHART_PALETTE[0];
+  const circ = Math.PI * r;
+  const offset = circ * (1 - v/100);
+  let s = '';
+  s += `<path d="M ${cx-r} ${cy} A ${r} ${r} 0 0 1 ${cx+r} ${cy}" fill="none" stroke="#2a2a2a" stroke-width="20" stroke-linecap="round"/>`;
+  s += `<path class="chart-gauge-arc" data-offset="${offset}" data-circ="${circ}" style="stroke-dasharray:${circ};stroke-dashoffset:${circ}" d="M ${cx-r} ${cy} A ${r} ${r} 0 0 1 ${cx+r} ${cy}" fill="none" stroke="${c}" stroke-width="20" stroke-linecap="round"/>`;
+  s += `<text class="chart-value" x="${cx}" y="${cy-20}" text-anchor="middle" font-size="42" font-weight="800" fill="#fff" font-family="monospace">${v}%</text>`;
+  s += `<text x="${cx}" y="${cy+15}" text-anchor="middle" font-size="14" fill="#888">${escapeHtml(data[0].label)}</text>`;
+  return svgWrap(s, H);
+}
+
+function renderChartTimeline(data, base){
+  if(!data.length) return emptyChart();
+  const W=400, H=140, cy=70, P=30;
+  const n = data.length;
+  const x0 = P, x1 = W-P;
+  const step = n>1 ? (x1-x0)/(n-1) : 0;
+  let s = `<line class="chart-timeline-line" x1="${x0}" y1="${cy}" x2="${x1}" y2="${cy}" stroke="#444" stroke-width="3" stroke-linecap="round" pathLength="1"/>`;
+  data.forEach((d, i)=>{
+    const x = n>1 ? x0 + step*i : (x0+x1)/2;
+    const c = chartColor(i, base);
+    const above = i % 2 === 0;
+    s += `<circle class="chart-timeline-dot" style="transition-delay:${i*150}ms" cx="${x}" cy="${cy}" r="9" fill="${c}"/>`;
+    s += `<circle class="chart-timeline-dot" style="transition-delay:${i*150}ms" cx="${x}" cy="${cy}" r="4" fill="#0a0a0a"/>`;
+    const ty = above ? cy - 22 : cy + 34;
+    s += `<text class="chart-value" style="transition-delay:${i*150+300}ms" x="${x}" y="${ty}" text-anchor="middle" font-size="12" font-weight="700" fill="${c}">${escapeHtml(d.label)}</text>`;
+    const lty = above ? cy - 38 : cy + 50;
+    s += `<text class="chart-value" style="transition-delay:${i*150+300}ms" x="${x}" y="${lty}" text-anchor="middle" font-size="11" fill="#ccc">${escapeHtml(d.values[0] ?? '')}</text>`;
+  });
+  return svgWrap(s, H);
+}
+
+function renderChartRadar(data, base){
+  if(!data.length) return emptyChart();
+  const SZ=300, cx=SZ/2, cy=SZ/2, r=SZ/2-50;
+  const n = data.length;
+  const maxV = Math.max(...data.map(d=>d.values[0]), 1);
+  const c = base || CHART_PALETTE[0];
+  let s = '';
+  for(let ring=1; ring<=4; ring++){
+    const rr = r * ring / 4;
+    let pts = '';
+    for(let i=0; i<n; i++){
+      const a = (360/n) * i;
+      const p = polarToXY(cx, cy, rr, a);
+      pts += `${p.x},${p.y} `;
+    }
+    s += `<polygon points="${pts}" fill="none" stroke="#2a2a2a" stroke-width="1"/>`;
+  }
+  for(let i=0; i<n; i++){
+    const a = (360/n) * i;
+    const p = polarToXY(cx, cy, r, a);
+    s += `<line x1="${cx}" y1="${cy}" x2="${p.x}" y2="${p.y}" stroke="#2a2a2a" stroke-width="1"/>`;
+    const lp = polarToXY(cx, cy, r+18, a);
+    const anchor = Math.abs(lp.x-cx) < 5 ? 'middle' : (lp.x > cx ? 'start' : 'end');
+    s += `<text x="${lp.x}" y="${lp.y+4}" text-anchor="${anchor}" font-size="11" fill="#ccc">${escapeHtml(data[i].label)}</text>`;
+  }
+  let valPts = '';
+  data.forEach((d, i)=>{
+    const a = (360/n) * i;
+    const rr = (d.values[0]/maxV) * r;
+    const p = polarToXY(cx, cy, rr, a);
+    valPts += `${p.x},${p.y} `;
+  });
+  s += `<polygon class="chart-radar-shape" points="${valPts}" fill="${c}" fill-opacity="0.35" stroke="${c}" stroke-width="2"/>`;
+  data.forEach((d, i)=>{
+    const a = (360/n) * i;
+    const rr = (d.values[0]/maxV) * r;
+    const p = polarToXY(cx, cy, rr, a);
+    s += `<circle class="chart-point" style="transition-delay:${i*80+400}ms" cx="${p.x}" cy="${p.y}" r="3.5" fill="${c}"/>`;
+  });
+  return svgWrap(s, SZ);
+}
+
+function renderChartStacked(data, base){
+  if(!data.length) return emptyChart();
+  const W=400, H=240, P=30;
+  const nSeries = Math.max(...data.map(d=>d.values.length));
+  const totals = data.map(d=>d.values.reduce((a,b)=>a+Math.abs(b),0));
+  const maxV = Math.max(...totals, 1);
+  const gap = (W - P*2) / data.length;
+  const barW = Math.min(gap * 0.65, 50);
+  let s = `<line x1="${P}" y1="${H-P}" x2="${W-P}" y2="${H-P}" stroke="#333"/>`;
+  data.forEach((d, i)=>{
+    const x = P + gap*i + (gap - barW)/2;
+    const total = totals[i];
+    const totalH = (total/maxV) * (H - P*2 - 20);
+    let yCursor = H - P;
+    d.values.forEach((v, si)=>{
+      const segH = (Math.abs(v)/maxV) * (H - P*2 - 20);
+      const c = chartColor(si, si === 0 ? base : null);
+      yCursor -= segH;
+      s += `<rect class="chart-bar" style="transition-delay:${i*80+si*120}ms" x="${x}" y="${yCursor}" width="${barW}" height="${segH}" fill="${c}"/>`;
+    });
+    s += `<text x="${x+barW/2}" y="${H-P+16}" text-anchor="middle" font-size="11" fill="#aaa">${escapeHtml(d.label)}</text>`;
+    s += `<text class="chart-value" style="transition-delay:${i*80+400}ms" x="${x+barW/2}" y="${H-P-totalH-6}" text-anchor="middle" font-size="11" fill="#fff" font-weight="600">${total}</text>`;
+  });
+  return svgWrap(s, H);
+}
+
+function renderChartCompare(data, base){
+  if(!data.length) return emptyChart();
+  const W=400, H=240, P=30;
+  const maxV = Math.max(...data.flatMap(d=>d.values.map(Math.abs)), 1);
+  const gap = (W - P*2) / data.length;
+  const pairW = Math.min(gap * 0.65, 60);
+  const barW = pairW / 2 - 2;
+  let s = `<line x1="${P}" y1="${H-P}" x2="${W-P}" y2="${H-P}" stroke="#333"/>`;
+  data.forEach((d, i)=>{
+    const x = P + gap*i + (gap - pairW)/2;
+    const v0 = d.values[0] || 0;
+    const v1 = d.values[1] || 0;
+    const c0 = base || CHART_PALETTE[0];
+    const c1 = CHART_PALETTE[1];
+    const h0 = Math.max(2, (Math.abs(v0)/maxV) * (H - P*2 - 20));
+    const h1 = Math.max(2, (Math.abs(v1)/maxV) * (H - P*2 - 20));
+    s += `<rect class="chart-bar" style="transition-delay:${i*100}ms" x="${x}" y="${H-P-h0}" width="${barW}" height="${h0}" fill="${c0}" rx="3"/>`;
+    s += `<rect class="chart-bar" style="transition-delay:${i*100+80}ms" x="${x+barW+4}" y="${H-P-h1}" width="${barW}" height="${h1}" fill="${c1}" rx="3"/>`;
+    s += `<text class="chart-value" style="transition-delay:${i*100+400}ms" x="${x+barW/2}" y="${H-P-h0-5}" text-anchor="middle" font-size="10" fill="#fff" font-weight="600">${v0}</text>`;
+    s += `<text class="chart-value" style="transition-delay:${i*100+400}ms" x="${x+barW+4+barW/2}" y="${H-P-h1-5}" text-anchor="middle" font-size="10" fill="#fff" font-weight="600">${v1}</text>`;
+    s += `<text x="${x+pairW/2}" y="${H-P+16}" text-anchor="middle" font-size="11" fill="#aaa">${escapeHtml(d.label)}</text>`;
+  });
+  return svgWrap(s, H);
+}
+
+function renderChartFunnel(data, base){
+  if(!data.length) return emptyChart();
+  const W=400, P=30;
+  const rowH=44;
+  const H = data.length * rowH + 20;
+  const maxV = Math.max(...data.map(d=>Math.abs(d.values[0])), 1);
+  const maxW = W - P*2;
+  let s = '';
+  data.forEach((d, i)=>{
+    const v = Math.abs(d.values[0]);
+    const w = (v/maxV) * maxW;
+    const x = (W - w) / 2;
+    const y = i * rowH + 10;
+    const c = chartColor(i, base);
+    s += `<rect class="chart-funnel-slice" style="transition-delay:${i*120}ms" x="${x}" y="${y}" width="${w}" height="${rowH-6}" fill="${c}" rx="4" opacity="0.9"/>`;
+    s += `<text x="${W/2}" y="${y+(rowH-6)/2+5}" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">${escapeHtml(d.label)} — ${v}</text>`;
+  });
+  return svgWrap(s, H);
+}
+
+function renderChartByType(type, dataStr, color){
+  const data = parseChartData(dataStr);
+  switch(type){
+    case 'chart-bars': return renderChartBars(data, color);
+    case 'chart-hbars': return renderChartHbars(data, color);
+    case 'chart-line': return renderChartLine(data, color);
+    case 'chart-area': return renderChartArea(data, color);
+    case 'chart-pie': return renderChartPie(data, color, false);
+    case 'chart-donut': return renderChartPie(data, color, true);
+    case 'chart-gauge': return renderChartGauge(data, color);
+    case 'chart-timeline': return renderChartTimeline(data, color);
+    case 'chart-radar': return renderChartRadar(data, color);
+    case 'chart-stacked': return renderChartStacked(data, color);
+    case 'chart-compare': return renderChartCompare(data, color);
+    case 'chart-funnel': return renderChartFunnel(data, color);
+    default: return emptyChart();
+  }
+}
+
+/* ============================================================
+   ICÔNES
+   ============================================================ */
+const ICONS = {
+  title:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6h12M12 6v12M9 18h6"/></svg>`,
+  subtitle:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 8h14M5 12h10"/></svg>`,
+  text:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 7h14M5 11h14M5 15h10"/></svg>`,
+  quote:`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 7h4v4c0 2-1 3-3 3v-2c1 0 1-1 1-2H7V7zm6 0h4v4c0 2-1 3-3 3v-2c1 0 1-1 1-2h-2V7z"/></svg>`,
+  highlight:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="9" width="16" height="8" rx="2" fill="currentColor" opacity="0.35" stroke="none"/><path d="M6 12h8M6 15h5" stroke="currentColor" stroke-linecap="round"/></svg>`,
+  label:`<svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="9" width="18" height="7" rx="3.5"/></svg>`,
+  badge:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="9" width="18" height="7" rx="3.5"/></svg>`,
+  button:`<svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="8" width="18" height="9" rx="3"/></svg>`,
+  'button-secondary':`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="8" width="18" height="9" rx="3"/></svg>`,
+  card:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M6 10h8M6 13h12M6 16h6" stroke-linecap="round"/></svg>`,
+  alert:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01" stroke-linecap="round"/></svg>`,
+  terminal:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="6" cy="8" r="0.9" fill="currentColor"/><circle cx="8.5" cy="8" r="0.9" fill="currentColor"/><circle cx="11" cy="8" r="0.9" fill="currentColor"/><path d="M6 12l2 2-2 2M10 16h4" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  bar:`<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="10" width="18" height="4" rx="2" fill="currentColor" opacity="0.25"/><rect x="3" y="10" width="12" height="4" rx="2" fill="currentColor"/></svg>`,
+  'circle-progress':`<svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="8" stroke="currentColor" opacity="0.25"/><path d="M12 4a8 8 0 0 1 8 8" stroke="currentColor"/></svg>`,
+  counter:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5L7 19M17 5l-2 14M4 9h16M3 15h16"/></svg>`,
+  table:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M3 10h18M3 14h18M9 5v14M15 5v14"/></svg>`,
+  image:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10.5" r="1.5"/><path d="M21 16l-5-5-9 8"/></svg>`,
+  video:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M10 9l5 3-5 3z" fill="currentColor"/></svg>`,
+  icon:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l2.6 6.2L21 10l-5 4.3L17.5 21 12 17.5 6.5 21 8 14.3 3 10l6.4-.8z"/></svg>`,
+  code:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7L4 12l5 5M15 7l5 5-5 5"/></svg>`,
+  'inline-code':`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 9L6 12l3 3M15 9l3 3-3 3M13 7l-2 10"/></svg>`,
+  list:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="7" r="1.3" fill="currentColor"/><circle cx="5" cy="12" r="1.3" fill="currentColor"/><circle cx="5" cy="17" r="1.3" fill="currentColor"/><path d="M9 7h11M9 12h11M9 17h11"/></svg>`,
+  'list-numbered':`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h1v4M4 13h2l-2 4h2M9 8h11M9 16h11"/></svg>`,
+  'list-check':`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7l2 2 3-3M4 15l2 2 3-3M12 8h8M12 16h8"/></svg>`,
+  separator:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h18"/></svg>`,
+  spacer:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4l4 4 4-4M8 20l4-4 4 4M12 8v8"/></svg>`,
+  'chart-bars':`<svg viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="14" width="3" height="6" rx="0.8"/><rect x="9" y="9" width="3" height="11" rx="0.8"/><rect x="14" y="5" width="3" height="15" rx="0.8"/><rect x="19" y="12" width="3" height="8" rx="0.8"/></svg>`,
+  'chart-hbars':`<svg viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="5" width="10" height="3" rx="0.8"/><rect x="4" y="10" width="16" height="3" rx="0.8"/><rect x="4" y="15" width="7" height="3" rx="0.8"/></svg>`,
+  'chart-line':`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18l5-7 4 4 5-9 4 3"/><circle cx="8" cy="11" r="1.3" fill="currentColor"/><circle cx="12" cy="15" r="1.3" fill="currentColor"/><circle cx="17" cy="6" r="1.3" fill="currentColor"/></svg>`,
+  'chart-area':`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18l5-7 4 4 5-9 4 3" fill="currentColor" fill-opacity="0.3" stroke="currentColor"/><path d="M3 18h18"/></svg>`,
+  'chart-pie':`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 12V3M12 12l7 5.5"/></svg>`,
+  'chart-donut':`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 12V3"/></svg>`,
+  'chart-gauge':`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 17a8 8 0 0 1 16 0"/><path d="M12 17l5-5"/></svg>`,
+  'chart-timeline':`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="3" y1="12" x2="21" y2="12"/><circle cx="6" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="18" cy="12" r="2" fill="currentColor"/></svg>`,
+  'chart-radar':`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12,3 20,8 20,16 12,21 4,16 4,8"/><polygon points="12,7 16.5,10 16.5,14.5 12,17.5 7.5,14.5 7.5,10" fill="currentColor" fill-opacity="0.3"/></svg>`,
+  'chart-stacked':`<svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="6" width="4" height="4" rx="0.5"/><rect x="5" y="11" width="4" height="4" rx="0.5" opacity="0.6"/><rect x="5" y="16" width="4" height="3" rx="0.5" opacity="0.4"/><rect x="14" y="9" width="4" height="4" rx="0.5"/><rect x="14" y="14" width="4" height="5" rx="0.5" opacity="0.6"/></svg>`,
+  'chart-compare':`<svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="6" width="3" height="14" rx="0.5"/><rect x="9" y="10" width="3" height="10" rx="0.5" opacity="0.6"/><rect x="16" y="4" width="3" height="16" rx="0.5"/><rect x="20" y="9" width="3" height="11" rx="0.5" opacity="0.6"/></svg>`,
+  'chart-funnel':`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 4h18l-3 5H6z"/><path d="M6 10h12l-2 5H8z" opacity="0.7"/><path d="M8 16h8l-1 5h-6z" opacity="0.5"/></svg>`
+};
+
+const GALLERY = [
+  {section:'Texte'}, {type:'title',label:'Titre'}, {type:'subtitle',label:'Sous-titre'},
+  {type:'text',label:'Texte'}, {type:'quote',label:'Citation'}, {type:'highlight',label:'Surlignage'}, {type:'label',label:'Label'},
+  {section:'Listes'}, {type:'list',label:'Puces'}, {type:'list-numbered',label:'Numérotée'}, {type:'list-check',label:'Cases à cocher'},
+  {section:'Mise en page'}, {type:'separator',label:'Séparateur'}, {type:'spacer',label:'Espace'},
+  {section:'Composants'}, {type:'badge',label:'Badge'}, {type:'button',label:'Bouton'}, {type:'button-secondary',label:'Bouton 2nd'},
+  {type:'card',label:'Carte'}, {type:'alert',label:'Alerte'}, {type:'terminal',label:'Terminal'},
+  {section:'Données'}, {type:'bar',label:'Barre'}, {type:'circle-progress',label:'Cercle'}, {type:'counter',label:'Compteur'}, {type:'table',label:'Tableau'},
+  {section:'Graphiques'},
+  {type:'chart-bars',label:'Barres verticales'},
+  {type:'chart-hbars',label:'Barres horizontales'},
+  {type:'chart-line',label:'Courbe'},
+  {type:'chart-area',label:'Aire'},
+  {type:'chart-pie',label:'Camembert'},
+  {type:'chart-donut',label:'Anneau'},
+  {type:'chart-gauge',label:'Jauge'},
+  {type:'chart-timeline',label:'Frise'},
+  {type:'chart-radar',label:'Radar'},
+  {type:'chart-stacked',label:'Barres empilées'},
+  {type:'chart-compare',label:'Comparaison'},
+  {type:'chart-funnel',label:'Entonnoir'},
+  {section:'Média & Code'}, {type:'image',label:'Image'}, {type:'video',label:'Vidéo'}, {type:'icon',label:'Icône'}, {type:'code',label:'Code'}, {type:'inline-code',label:'Code inline'}
+];
+
+function buildAddPanel(){
+  const panel = document.getElementById('addPanel');
+  panel.innerHTML = '';
+  GALLERY.forEach(item => {
+    if(item.section){
+      const s = document.createElement('div');
+      s.className = 'panel-section';
+      s.textContent = item.section;
+      panel.appendChild(s);
+      return;
+    }
+    const btn = document.createElement('button');
+    btn.className = 'btn icon-btn';
+    const color =
+      ['title','subtitle','text','quote','highlight','label'].includes(item.type) ? '#ff4d4d' :
+      ['list','list-numbered','list-check'].includes(item.type) ? '#4d9fff' :
+      ['badge','button','button-secondary','card','alert','terminal'].includes(item.type) ? '#a78bfa' :
+      ['bar','circle-progress','counter','table'].includes(item.type) ? '#f5c542' :
+      CHART_TYPES.includes(item.type) ? '#06b6d4' : '#27c93f';
+    btn.innerHTML = `<span class="btn-icon" style="color:${color}">${ICONS[item.type]||''}</span><span>${item.label}</span>`;
+    btn.onclick = () => addElement(item.type);
+    panel.appendChild(btn);
+  });
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'btn primary';
+  closeBtn.style.marginLeft = 'auto';
+  closeBtn.textContent = '✕ Fermer';
+  closeBtn.onclick = closeAddPanel;
+  panel.appendChild(closeBtn);
+}
+
+const ANIM_BY_TYPE = {
+  title:'anim-fade-up', subtitle:'anim-fade-up', text:'anim-fade-in',
+  quote:'anim-slide-left', highlight:'anim-zoom-bounce', label:'anim-zoom-bounce',
+  badge:'anim-zoom-bounce', button:'anim-zoom-bounce', 'button-secondary':'anim-zoom-bounce',
+  card:'anim-slide-right', alert:'anim-shake', bar:'anim-fade-in',
+  'circle-progress':'anim-fade-in', counter:'anim-zoom-bounce', table:'anim-fade-in',
+  code:'anim-fade-in', 'inline-code':'anim-zoom-bounce', image:'anim-zoom-bounce',
+  video:'anim-zoom-bounce', icon:'anim-rotate-zoom', list:'anim-fade-in',
+  'list-numbered':'anim-fade-in', 'list-check':'anim-fade-in',
+  separator:'anim-fade-in', spacer:'anim-fade-in', terminal:'anim-fade-in',
+  'chart-bars':'anim-fade-in', 'chart-hbars':'anim-fade-in', 'chart-line':'anim-fade-in',
+  'chart-area':'anim-fade-in', 'chart-pie':'anim-zoom-bounce', 'chart-donut':'anim-zoom-bounce',
+  'chart-gauge':'anim-fade-in', 'chart-timeline':'anim-fade-in', 'chart-radar':'anim-zoom-bounce',
+  'chart-stacked':'anim-fade-in', 'chart-compare':'anim-fade-in', 'chart-funnel':'anim-fade-in'
+};
+
+function getElementDuration(el){
+  const base = 700;
+  if(CHART_TYPES.includes(el.type)){
+    const n = parseChartData(el.dataStr || '').length;
+    return 900 + n * 150;
+  }
+  switch(el.type){
+    case 'bar': return 900;
+    case 'circle-progress': return 1400;
+    case 'counter': return 1400;
+    case 'terminal': return Math.max(700, (el.command?.length || 0) * 60 + 200);
+    case 'list': case 'list-numbered': case 'list-check': {
+      const n = el.items?.length || 0;
+      return n > 0 ? 500 + (n-1)*500 + 400 : 700;
+    }
+    case 'table': {
+      const n = Math.max(0, (el.rows?.length || 0) - 1);
+      return n > 0 ? 500 + (n-1)*500 + 400 : 700;
+    }
+    default: return base;
+  }
+}
+
+window.addEventListener('DOMContentLoaded', boot);
+
+function boot(){
+  S.slides = [{ elements: [] }];
+  S.currentSlide = 0;
+  buildAddPanel();
+  buildTransitionGrid();
+  renderEditor();
+}
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+function next(){
+  if(S.currentSlide < S.slides.length - 1){
+    S.currentSlide++;
+    S.selectedIndex = null; S.insertPosition = 'end';
+    renderEditor();
+    applySlideTransition(1);
+    if(S.presentationMode) restartSlideAnimation(S.currentSlide);
+  }
+}
+function prev(){
+  if(S.currentSlide > 0){
+    S.currentSlide--;
+    S.selectedIndex = null; S.insertPosition = 'end';
+    renderEditor();
+    applySlideTransition(-1);
+    if(S.presentationMode) restartSlideAnimation(S.currentSlide);
+  }
+}
+function updateNav(){
+  const total = S.slides.length;
+  document.getElementById('counter').textContent = (S.currentSlide+1)+' / '+total;
+  document.getElementById('progress').style.width = ((S.currentSlide+1)/total*100)+'%';
+}
+function applySlideTransition(direction){
+  if(S.transitionType === 'none') return;
+  const section = document.querySelector(`.slide[data-slide-id="${S.currentSlide}"]`);
+  if(!section) return;
+  const cls = `trans-${S.transitionType}`;
+  section.classList.remove('trans-in','back');
+  void section.offsetWidth;
+  if(direction < 0) section.classList.add('back');
+  section.classList.add('trans-in', cls);
+  setTimeout(() => section.classList.remove('trans-in', cls, 'back'), 600);
+}
+
+/* ============================================================
+   TRANSITIONS
+   ============================================================ */
+function buildTransitionGrid(){
+  const grid = document.getElementById('transGrid');
+  grid.innerHTML = '';
+  S.transitions.forEach(t => {
+    const card = document.createElement('button');
+    card.className = 'trans-card' + (S.transitionType === t.id ? ' active' : '');
+    card.dataset.trans = t.id;
+    card.innerHTML = `<div class="trans-preview"><div class="box"></div></div><div class="trans-label">${t.label}</div>`;
+    card.onclick = () => {
+      S.transitionType = t.id;
+      document.querySelectorAll('.trans-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      const section = document.querySelector(`.slide[data-slide-id="${S.currentSlide}"]`);
+      if(section && t.id !== 'none'){
+        const cls = `trans-${t.id}`;
+        section.classList.remove('trans-in','back','trans-slide','trans-fade','trans-zoom','trans-flip','trans-slide-up');
+        void section.offsetWidth;
+        section.classList.add('trans-in', cls);
+        setTimeout(() => section.classList.remove('trans-in', cls, 'back'), 700);
+      }
+    };
+    grid.appendChild(card);
+  });
+}
+function openTransitionModal(){ document.getElementById('transModal').classList.add('open'); }
+function closeTransitionModal(){ document.getElementById('transModal').classList.remove('open'); }
+
+/* ============================================================
+   EXPORT MODAL
+   ============================================================ */
+function openExportModal(){ document.getElementById('exportModal').classList.add('open'); }
+function closeExportModal(){ document.getElementById('exportModal').classList.remove('open'); }
+function exportAsHTML(){ closeExportModal(); exportHTML(); }
+
+function exportAsJSON(){
+  closeExportModal();
+  const data = {
+    version: 1, createdAt: new Date().toISOString(),
+    transitionType: S.transitionType, slides: S.slides
+  };
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], {type:'application/json;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'slides.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+function importJSON(){
+  closeExportModal();
+  const input = document.getElementById('jsonFileInput');
+  input.value = ''; input.click();
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('jsonFileInput');
+  input.addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const data = JSON.parse(evt.target.result);
+        const slidesArr = Array.isArray(data) ? data : (data.slides || null);
+        if(!Array.isArray(slidesArr) || slidesArr.length === 0){
+          alert('❌ Fichier JSON invalide : aucune slide trouvée.'); return;
+        }
+        const clean = slidesArr.map(s => ({ elements: Array.isArray(s.elements) ? s.elements : [] }));
+        S.slides = clean; S.currentSlide = 0;
+        S.selectedIndex = null; S.insertPosition = 'end';
+        S.playedAnimations = {}; S.animToken++;
+        if(data.transitionType && S.transitions.some(t => t.id === data.transitionType)){
+          S.transitionType = data.transitionType; buildTransitionGrid();
+        }
+        renderEditor();
+        alert(`✅ ${clean.length} slide(s) importée(s) avec succès.`);
+      } catch(err){
+        console.error(err);
+        alert('❌ Erreur lors de la lecture du JSON : ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  });
+});
+
+/* ============================================================
+   ÉDITEUR
+   ============================================================ */
+function renderEditor(){
+  const container = document.getElementById('slidesContainer');
+  container.innerHTML = '';
+  S.slides.forEach((slide, si) => {
+    const section = document.createElement('section');
+    section.className = 'slide' + (si === S.currentSlide ? ' active' : '');
+    section.dataset.index = si;
+    section.dataset.slideId = si;
+    section.addEventListener('click', (e) => {
+      if(e.target === section && slide.elements.length > 0 && !S.presentationMode) deselect();
+    });
+    if(slide.elements.length === 0){
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.innerHTML = '<div class="big-plus">+</div><div>Appuie pour ajouter ton premier élément</div>';
+      empty.onclick = (e) => {
+        e.stopPropagation();
+        if(S.presentationMode) return;
+        S.selectedIndex=null; S.insertPosition='end';
+        openAddPanel();
+        showHint('📍 Le prochain élément sera le premier');
+      };
+      section.appendChild(empty);
+    } else {
+      slide.elements.forEach((el,ei)=>section.appendChild(buildElement(el,si,ei)));
+      const addEnd = document.createElement('button');
+      addEnd.className = 'add-end-btn';
+      addEnd.textContent = '➕ Ajouter à la fin';
+      addEnd.onclick = (e) => {
+        e.stopPropagation();
+        if(S.presentationMode) return;
+        S.selectedIndex=null; S.insertPosition='end';
+        openAddPanel();
+        showHint('📍 Insertion à la fin');
+      };
+      section.appendChild(addEnd);
+    }
+    container.appendChild(section);
+  });
+  updateNav();
+  updateInsertHint();
+}
+
+function buildElement(el, si, ei){
+  const wrap = document.createElement('div');
+  wrap.className = 'el ' + (el.width || 'w-100');
+  if(el.size && SIZE_VALUES[el.size] !== undefined){
+    wrap.style.setProperty('--scale', SIZE_VALUES[el.size]);
+  }
+  if(el.color){ wrap.style.setProperty('--el-color', el.color); }
+  wrap.dataset.slide = si; wrap.dataset.index = ei; wrap.dataset.elIndex = ei;
+  const animClass = ANIM_BY_TYPE[el.type] || 'anim-fade-in';
+  wrap.classList.add('anim-el', animClass);
+  if(si === S.currentSlide && ei === S.selectedIndex && !S.presentationMode) wrap.classList.add('selected');
+
+  const btnBefore = document.createElement('button');
+  btnBefore.className = 'insert-btn insert-before'; btnBefore.textContent = '+';
+  btnBefore.onclick = (e) => { e.stopPropagation(); insertAt(si, ei, 'before'); };
+  wrap.appendChild(btnBefore);
+
+  const btnAfter = document.createElement('button');
+  btnAfter.className = 'insert-btn insert-after'; btnAfter.textContent = '+';
+  btnAfter.onclick = (e) => { e.stopPropagation(); insertAt(si, ei, 'after'); };
+  wrap.appendChild(btnAfter);
+
+  const editBtn = document.createElement('button');
+  editBtn.className = 'el-edit'; editBtn.textContent = '✎';
+  editBtn.onclick = (e) => { e.stopPropagation(); editElement(si, ei); };
+  wrap.appendChild(editBtn);
+
+  const del = document.createElement('button');
+  del.className = 'el-del'; del.textContent = '✕';
+  del.onclick = (e) => { e.stopPropagation(); removeElement(si, ei); };
+  wrap.appendChild(del);
+
+  const content = document.createElement('div');
+  content.innerHTML = renderElementContent(el, !S.presentationMode);
+  wrap.appendChild(content);
+
+  if(!S.presentationMode && CHART_TYPES.includes(el.type)){
+    content.querySelectorAll('.chart-gauge-arc').forEach(g => {
+      const off = g.dataset.offset;
+      if(off !== undefined) g.style.strokeDashoffset = off;
+    });
+  }
+
+  wrap.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if(S.presentationMode) return;
+    if(S.selectedIndex === ei && si === S.currentSlide){
+      editElement(si, ei);
+    } else {
+      selectElement(si, ei);
+    }
+  });
+  wrap.addEventListener('dblclick', (e) => {
+    e.stopPropagation();
+    if(S.presentationMode) return;
+    editElement(si, ei);
+  });
+  let pressTimer;
+  wrap.addEventListener('touchstart', () => {
+    if(S.presentationMode) return;
+    pressTimer = setTimeout(() => editElement(si, ei), 500);
+  }, {passive:true});
+  wrap.addEventListener('touchend', () => clearTimeout(pressTimer));
+  wrap.addEventListener('touchmove', () => clearTimeout(pressTimer));
+
+  if(el.breakAfter){
+    const br = document.createElement('div');
+    br.className = 'el break-after';
+    wrap.appendChild(br);
+  }
+  return wrap;
+}
+
+function renderElementContent(el, isEdit){
+  isEdit = !!isEdit;
+  if(CHART_TYPES.includes(el.type)){
+    const html = renderChartByType(el.type, el.dataStr || '', el.color || null);
+    return isEdit ? addPlayToChart(html) : html;
+  }
+  switch(el.type){
+    case 'title': return `<p class="el-title">${escapeHtml(el.value)}</p>`;
+    case 'subtitle': return `<p class="el-subtitle">${escapeHtml(el.value)}</p>`;
+    case 'text': return `<p class="el-text">${escapeHtml(el.value)}</p>`;
+    case 'quote': return `<blockquote class="el-quote">${escapeHtml(el.value)}</blockquote>`;
+    case 'highlight': return `<span class="el-highlight">${escapeHtml(el.value)}</span>`;
+    case 'label': return `<span class="el-label">${escapeHtml(el.value)}</span>`;
+    case 'terminal':
+      return `<div class="el-terminal" data-command="${escapeHtml(el.command||'')}"><div class="bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="title">${escapeHtml(el.title||'user@arch: ~')}</span></div><div class="body"><span class="prompt">$</span><span class="terminal-cmd">${isEdit ? escapeHtml(el.command||'') : ''}</span><span class="cursor"></span></div></div>`;
+    case 'badge': return `<span class="el-badge">${escapeHtml(el.value)}</span>`;
+    case 'button': return `<button class="el-button">${escapeHtml(el.value)}</button>`;
+    case 'button-secondary': return `<button class="el-button-secondary">${escapeHtml(el.value)}</button>`;
+    case 'card': return `<div class="el-card"><div class="card-title">${escapeHtml(el.title||'')}</div><div class="card-text">${escapeHtml(el.text||'')}</div></div>`;
+    case 'alert': return `<div class="el-alert ${el.variant||'info'}"><div>⚠</div><div>${escapeHtml(el.value||'')}</div></div>`;
+    case 'bar':
+      return `<div class="el-bar"><span data-value="${el.value}" style="width:${isEdit ? el.value : 0}%"></span></div>`;
+    case 'circle-progress': {
+      const r=46, c=2*Math.PI*r;
+      const offset = isEdit ? c * (1 - el.value/100) : c;
+      const txt = isEdit ? el.value + '%' : '0%';
+      return `<div class="el-circle-progress" data-value="${el.value}"><svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="${r}"/><circle class="fg" cx="50" cy="50" r="${r}" stroke-dasharray="${c}" stroke-dashoffset="${offset}"/></svg><div class="value">${txt}</div></div>`;
+    }
+    case 'counter':
+      return `<div class="el-counter"><span class="counter-value" data-value="${escapeHtml(el.value)}">${isEdit ? escapeHtml(el.value) : '0'}</span><small>${escapeHtml(el.label||'')}</small></div>`;
+    case 'table': {
+      const rows = el.rows || [];
+      if(rows.length === 0) return '';
+      const head = rows[0].map(c => `<th>${escapeHtml(c)}</th>`).join('');
+      const body = rows.slice(1).map(r => '<tr class="stagger-item' + (isEdit ? ' stagger-play' : '') + '">' + r.map(c => `<td>${escapeHtml(c)}</td>`).join('') + '</tr>').join('');
+      return `<table class="el-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+    }
+    case 'code': return `<pre class="el-code">${escapeHtml(el.value)}</pre>`;
+    case 'inline-code': return `<span class="el-inline-code">${escapeHtml(el.value)}</span>`;
+    case 'image': return `<img class="el-image" src="${escapeHtml(el.value)}" alt="">`;
+    case 'video': {
+      const url = el.value || '';
+      if(url.includes('youtube.com') || url.includes('youtu.be')){
+        const id = url.includes('youtu.be/') ? url.split('youtu.be/')[1].split('?')[0] : new URL(url).searchParams.get('v');
+        return `<div class="el-video"><iframe src="https://www.youtube.com/embed/${id}" allowfullscreen></iframe></div>`;
+      }
+      return `<div class="el-video"><iframe src="${escapeHtml(url)}" allowfullscreen></iframe></div>`;
+    }
+    case 'icon': return `<div class="el-icon">${escapeHtml(el.value)}</div>`;
+    case 'list': case 'list-numbered': case 'list-check': {
+      const items = el.items || [];
+      const cls = el.type === 'list' ? 'el-list' : el.type === 'list-numbered' ? 'el-list-numbered' : 'el-list-check';
+      return `<ul class="${cls}">${items.map(i => `<li class="stagger-item${isEdit ? ' stagger-play' : ''}">${escapeHtml(i)}</li>`).join('')}</ul>`;
+    }
+    case 'separator': return `<hr class="el-separator anim-separator${isEdit ? ' anim-play' : ''}">`;
+    case 'spacer': return `<div class="el-spacer" style="height:${el.value||20}px"></div>`;
+    default: return '';
+  }
+}
+
+function addPlayToChart(html){
+  return html
+    .replace(/class="chart-bar"/g, 'class="chart-bar play"')
+    .replace(/class="chart-hbar"/g, 'class="chart-hbar play"')
+    .replace(/class="chart-line-path"/g, 'class="chart-line-path play"')
+    .replace(/class="chart-area-path"/g, 'class="chart-area-path play"')
+    .replace(/class="chart-point"/g, 'class="chart-point play"')
+    .replace(/class="chart-slice"/g, 'class="chart-slice play"')
+    .replace(/class="chart-value"/g, 'class="chart-value play"')
+    .replace(/class="chart-timeline-dot"/g, 'class="chart-timeline-dot play"')
+    .replace(/class="chart-timeline-line"/g, 'class="chart-timeline-line play"')
+    .replace(/class="chart-radar-shape"/g, 'class="chart-radar-shape play"')
+    .replace(/class="chart-funnel-slice"/g, 'class="chart-funnel-slice play"')
+    .replace(/class="chart-gauge-arc"/g, 'class="chart-gauge-arc play"');
+}
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+function playSlideAnimations(slideIndex){
+  if(!S.presentationMode) return;
+  if(S.playedAnimations[slideIndex]) return;
+  S.playedAnimations[slideIndex] = true;
+  const myToken = S.animToken;
+  const section = document.querySelector(`.slide[data-slide-id="${slideIndex}"]`);
+  if(!section) return;
+  const slide = S.slides[slideIndex];
+  const animEls = section.querySelectorAll('.anim-el');
+  let cursor = 0;
+  animEls.forEach((el, i) => {
+    const elData = slide.elements[i];
+    const duration = getElementDuration(elData);
+    const delay = cursor;
+    cursor += duration + 500;
+    setTimeout(() => {
+      if(S.animToken !== myToken) return;
+      if(!S.presentationMode) return;
+      el.classList.add('anim-play');
+      animateSpecific(el, elData);
+    }, delay);
+  });
+}
+function restartSlideAnimation(slideIndex){
+  S.animToken++;
+  delete S.playedAnimations[slideIndex];
+  const myToken = S.animToken;
+  setTimeout(() => {
+    if(S.animToken !== myToken) return;
+    playSlideAnimations(slideIndex);
+  }, 50);
+}
+function animateSpecific(el, elData){
+  if(elData && CHART_TYPES.includes(elData.type)){
+    el.querySelectorAll('.chart-bar, .chart-hbar, .chart-line-path, .chart-area-path, .chart-point, .chart-slice, .chart-value, .chart-timeline-dot, .chart-timeline-line, .chart-radar-shape, .chart-funnel-slice').forEach(node => node.classList.add('play'));
+    el.querySelectorAll('.chart-gauge-arc').forEach(g => {
+      const off = g.dataset.offset;
+      if(off !== undefined) setTimeout(() => g.style.strokeDashoffset = off, 30);
+    });
+    return;
+  }
+  const bar = el.querySelector('.el-bar > span');
+  if(bar){
+    const v = bar.dataset.value;
+    setTimeout(() => { bar.style.width = v + '%'; }, 100);
+  }
+  const circle = el.querySelector('.el-circle-progress');
+  if(circle){
+    const v = Number(circle.dataset.value);
+    const fg = circle.querySelector('.fg');
+    const valEl = circle.querySelector('.value');
+    const r = 46, c = 2 * Math.PI * r;
+    const offset = c * (1 - v/100);
+    setTimeout(() => {
+      fg.style.strokeDashoffset = offset;
+      let current = 0;
+      const step = Math.max(1, Math.round(v / 30));
+      const interval = setInterval(() => {
+        current += step;
+        if(current >= v){ current = v; clearInterval(interval); }
+        valEl.textContent = current + '%';
+      }, 40);
+    }, 200);
+  }
+  const counter = el.querySelector('.counter-value');
+  if(counter){
+    const target = Number(counter.dataset.value) || 0;
+    let current = 0;
+    const step = Math.max(1, Math.round(target / 40));
+    setTimeout(() => {
+      const interval = setInterval(() => {
+        current += step;
+        if(current >= target){ current = target; clearInterval(interval); }
+        counter.textContent = current;
+      }, 30);
+    }, 200);
+  }
+  const stags = el.querySelectorAll('.stagger-item');
+  stags.forEach((item, i) => setTimeout(() => item.classList.add('stagger-play'), 500 + i * 500));
+  const terminal = el.querySelector('.el-terminal');
+  if(terminal){
+    const cmdEl = terminal.querySelector('.terminal-cmd');
+    const fullText = terminal.dataset.command || '';
+    if(cmdEl && fullText){
+      let i = 0;
+      const interval = setInterval(() => {
+        cmdEl.textContent = fullText.slice(0, i + 1);
+        i++;
+        if(i >= fullText.length) clearInterval(interval);
+      }, 60);
+    }
+  }
+}
+function replayAnimations(){
+  if(!S.presentationMode) return;
+  S.playedAnimations = {};
+  S.animToken++;
+  renderEditor();
+  restartSlideAnimation(S.currentSlide);
+}
+
+function togglePresentation(){
+  S.presentationMode = !S.presentationMode;
+  const stage = document.getElementById('stage');
+  stage.classList.toggle('presentation', S.presentationMode);
+  document.getElementById('presBtn').textContent = S.presentationMode ? '✎ Éditer' : '▶ Présentation';
+  S.playedAnimations = {};
+  S.animToken++;
+  renderEditor();
+  if(S.presentationMode) restartSlideAnimation(S.currentSlide);
+}
+
+/* ============================================================
+   SÉLECTION / INSERTION
+   ============================================================ */
+function selectElement(si, ei){
+  if(si !== S.currentSlide || S.presentationMode) return;
+  S.selectedIndex = ei; S.insertPosition = 'after';
+  renderEditor();
+}
+function deselect(){ S.selectedIndex = null; S.insertPosition = 'end'; renderEditor(); }
+function showHint(text){
+  const hint = document.getElementById('insertHint');
+  hint.classList.remove('hidden'); hint.textContent = text;
+}
+function updateInsertHint(){
+  const hint = document.getElementById('insertHint');
+  if(S.presentationMode){ hint.classList.add('hidden'); return; }
+  const list = S.slides[S.currentSlide].elements;
+  if(S.selectedIndex === null){
+    if(list.length === 0) showHint('📍 Aucun élément — appuie sur +');
+    else hint.classList.add('hidden');
+    return;
+  }
+  showHint(`📍 Élément ${S.selectedIndex + 1} — appuie à nouveau ou ✎ pour modifier`);
+}
+
+function addSlide(){
+  S.slides.push({ elements: [] });
+  S.currentSlide = S.slides.length - 1;
+  S.selectedIndex = null; S.insertPosition = 'end';
+  renderEditor();
+  if(S.presentationMode) restartSlideAnimation(S.currentSlide);
+}
+function removeElement(si, ei){
+  S.slides[si].elements.splice(ei, 1);
+  if(si === S.currentSlide){
+    if(S.selectedIndex === ei) S.selectedIndex = null;
+    else if(S.selectedIndex > ei) S.selectedIndex--;
+  }
+  renderEditor();
+}
+function insertAt(si, ei, position){
+  if(si !== S.currentSlide || S.presentationMode) return;
+  S.selectedIndex = ei; S.insertPosition = position;
+  openAddPanel();
+  showHint(position === 'before' ? `📍 Insertion AVANT l'élément ${ei+1}` : `📍 Insertion APRÈS l'élément ${ei+1}`);
+}
+function openAddPanel(){ if(S.presentationMode) return; document.getElementById('addPanel').classList.add('open'); }
+function closeAddPanel(){ document.getElementById('addPanel').classList.remove('open'); }
+
+function addElement(type){
+  S.pendingType = type; S.editingIndex = null;
+  closeAddPanel();
+  openModal(type, null);
+}
+function editElement(si, ei){
+  const el = S.slides[si].elements[ei];
+  S.pendingType = el.type; S.editingIndex = ei; S.selectedIndex = ei;
+  openModal(el.type, el);
+}
+
+/* ============================================================
+   CHAMPS
+   ============================================================ */
+const fieldsByType = {
+  title:[{name:'value',label:'Texte',type:'text',default:'Mon titre'}],
+  subtitle:[{name:'value',label:'Texte',type:'text',default:'Mon sous-titre'}],
+  text:[{name:'value',label:'Texte',type:'textarea',default:'Mon paragraphe...'}],
+  quote:[{name:'value',label:'Citation',type:'textarea',default:'Une citation inspirante...'}],
+  highlight:[{name:'value',label:'Texte surligné',type:'text',default:'À retenir'}],
+  label:[{name:'value',label:'Label',type:'text',default:'Nouveau'}],
+  terminal:[
+    {name:'title',label:'Titre fenêtre',type:'text',default:'user@arch: ~'},
+    {name:'command',label:'Commande',type:'text',default:'ls -la'}
+  ],
+  badge:[{name:'value',label:'Texte du badge',type:'text',default:'Nouveau'}],
+  button:[{name:'value',label:'Texte du bouton',type:'text',default:'Cliquer'}],
+  'button-secondary':[{name:'value',label:'Texte du bouton',type:'text',default:'En savoir plus'}],
+  card:[
+    {name:'title',label:'Titre de la carte',type:'text',default:'Ma carte'},
+    {name:'text',label:'Texte',type:'textarea',default:'Description...'}
+  ],
+  alert:[
+    {name:'value',label:'Message',type:'text',default:'Attention !'},
+    {name:'variant',label:'Type',type:'select',options:['info','warning','danger','success'],default:'info'}
+  ],
+  bar:[{name:'value',label:'Pourcentage (0-100)',type:'number',default:60}],
+  'circle-progress':[{name:'value',label:'Pourcentage (0-100)',type:'number',default:75}],
+  counter:[
+    {name:'value',label:'Valeur',type:'text',default:'42'},
+    {name:'label',label:'Étiquette',type:'text',default:'Utilisateurs'}
+  ],
+  table:[{name:'rows',label:'Données (1 ligne par ligne, séparé par |)',type:'textarea',default:'Nom|Âge|Ville\nAlice|25|Paris\nBob|30|Lyon'}],
+  code:[{name:'value',label:'Code',type:'textarea',default:'console.log("hello");'}],
+  'inline-code':[{name:'value',label:'Code inline',type:'text',default:'npm install'}],
+  image:[{name:'value',label:'URL de l\'image',type:'text',default:'https://picsum.photos/400/200'}],
+  video:[{name:'value',label:'URL YouTube ou embed',type:'text',default:'https://www.youtube.com/watch?v=dQw4w9WgXcQ'}],
+  icon:[{name:'value',label:'Emoji / caractère',type:'text',default:'⭐'}],
+  list:[{name:'items',label:'Items (1 par ligne)',type:'textarea',default:'Premier point\nDeuxième point\nTroisième point'}],
+  'list-numbered':[{name:'items',label:'Items (1 par ligne)',type:'textarea',default:'Étape 1\nÉtape 2\nÉtape 3'}],
+  'list-check':[{name:'items',label:'Items (1 par ligne)',type:'textarea',default:'Tâche terminée\nAutre tâche\nEncore une'}],
+  separator:[],
+  spacer:[{name:'value',label:'Hauteur (px)',type:'number',default:20}],
+  'chart-bars':[{name:'dataStr',label:'Données (format "Label : valeur" par ligne)',type:'textarea',default:'A : 40\nB : 60\nC : 80\nD : 50'}],
+  'chart-hbars':[{name:'dataStr',label:'Données (format "Label : valeur" par ligne)',type:'textarea',default:'Rouge : 42\nBleu : 68\nVert : 55\nJaune : 30'}],
+  'chart-line':[{name:'dataStr',label:'Données (format "Label : valeur" par ligne)',type:'textarea',default:'Jan : 20\nFév : 35\nMar : 50\nAvr : 42\nMai : 68\nJuin : 80'}],
+  'chart-area':[{name:'dataStr',label:'Données (format "Label : valeur" par ligne)',type:'textarea',default:'Q1 : 30\nQ2 : 45\nQ3 : 65\nQ4 : 85'}],
+  'chart-pie':[{name:'dataStr',label:'Données (format "Label : valeur" par ligne)',type:'textarea',default:'A : 30\nB : 25\nC : 20\nD : 15\nE : 10'}],
+  'chart-donut':[{name:'dataStr',label:'Données (format "Label : valeur" par ligne)',type:'textarea',default:'Mobile : 55\nDesktop : 30\nTablette : 15'}],
+  'chart-gauge':[{name:'dataStr',label:'Données (format "Label : valeur" — la 1ère valeur est utilisée)',type:'textarea',default:'Progression : 72'}],
+  'chart-timeline':[{name:'dataStr',label:'Étapes (format "Date : Label")',type:'textarea',default:'1950 : Départ\n1980 : Milieu\n2000 : Étape\n2020 : Aujourd\'hui\n2040 : Futur'}],
+  'chart-radar':[{name:'dataStr',label:'Axes (format "Label : valeur" par ligne, min 3 axes)',type:'textarea',default:'Rapidité : 80\nPuissance : 60\nPrécision : 90\nEndurance : 70\nAgilité : 85'}],
+  'chart-stacked':[{name:'dataStr',label:'Données (format "Label : v1, v2, v3")',type:'textarea',default:'A : 10, 20, 15\nB : 15, 15, 25\nC : 20, 10, 30'}],
+  'chart-compare':[{name:'dataStr',label:'Données (format "Label : avant, après")',type:'textarea',default:'2023 : 40, 60\n2024 : 50, 70\n2025 : 55, 85'}],
+  'chart-funnel':[{name:'dataStr',label:'Étapes (format "Label : valeur")',type:'textarea',default:'Visiteurs : 1000\nInscrits : 500\nActifs : 250\nPayants : 100'}]
+};
+
+const SIZE_OPTIONS = [
+  {v:'',t:'Par défaut (M)'},{v:'xs',t:'XS — Très petit'},{v:'s',t:'S — Petit'},
+  {v:'m',t:'M — Moyen'},{v:'l',t:'L — Grand'},{v:'xl',t:'XL — Très grand'},{v:'xxl',t:'XXL — Énorme'}
+];
+const COLOR_OPTIONS = [
+  {v:'',t:'Couleur par défaut'},{v:'#ff4d4d',t:'🔴 Rouge'},{v:'#4d9fff',t:'🔵 Bleu'},
+  {v:'#27c93f',t:'🟢 Vert'},{v:'#f5c542',t:'🟡 Jaune'},{v:'#a78bfa',t:'🟣 Violet'},
+  {v:'#fb923c',t:'🟠 Orange'},{v:'#06b6d4',t:'🔷 Cyan'},{v:'#ec4899',t:'💗 Rose'},
+  {v:'#ffffff',t:'⚪ Blanc'},{v:'#888888',t:'⚫ Gris'},{v:'custom',t:'🎨 Personnalisée…'}
+];
+
+function openModal(type, existing){
+  const modal = document.getElementById('modal');
+  const title = document.getElementById('modalTitle');
+  const fields = document.getElementById('modalFields');
+  title.textContent = (existing ? 'Modifier : ' : 'Ajouter : ') + type;
+  fields.innerHTML = '';
+
+  fieldsByType[type].forEach(f => {
+    const label = document.createElement('label');
+    label.textContent = f.label;
+    fields.appendChild(label);
+    let input;
+    if(f.type === 'textarea'){
+      input = document.createElement('textarea');
+      input.value = existing
+        ? (f.name === 'items' ? (existing.items||[]).join('\n')
+          : f.name === 'rows' ? (existing.rows||[]).map(r=>r.join('|')).join('\n')
+          : f.name === 'dataStr' ? (existing.dataStr || f.default)
+          : existing[f.name] || '')
+        : f.default;
+    } else if(f.type === 'select'){
+      input = document.createElement('select');
+      f.options.forEach(o => {
+        const opt = document.createElement('option');
+        opt.value = o; opt.textContent = o;
+        input.appendChild(opt);
+      });
+      input.value = existing ? existing[f.name] : f.default;
+    } else {
+      input = document.createElement('input');
+      input.type = f.type;
+      input.value = existing ? existing[f.name] : f.default;
+    }
+    input.name = f.name;
+    fields.appendChild(input);
+  });
+
+  const wl = document.createElement('label');
+  wl.textContent = 'Largeur';
+  fields.appendChild(wl);
+  const wSel = document.createElement('select');
+  wSel.name = 'width';
+  [{v:'w-100',t:'100%'},{v:'w-75',t:'75%'},{v:'w-50',t:'50%'},{v:'w-33',t:'33%'},{v:'w-25',t:'25%'},{v:'w-auto',t:'Auto'}]
+    .forEach(o => {
+      const opt = document.createElement('option');
+      opt.value = o.v; opt.textContent = o.t;
+      wSel.appendChild(opt);
+    });
+  wSel.value = existing && existing.width ? existing.width : 'w-100';
+  fields.appendChild(wSel);
+
+  if(SIZE_SUPPORTED.includes(type)){
+    const sl = document.createElement('label');
+    sl.textContent = 'Taille';
+    fields.appendChild(sl);
+    const sSel = document.createElement('select');
+    sSel.name = 'size';
+    SIZE_OPTIONS.forEach(o => {
+      const opt = document.createElement('option');
+      opt.value = o.v; opt.textContent = o.t;
+      sSel.appendChild(opt);
+    });
+    sSel.value = existing && existing.size ? existing.size : '';
+    fields.appendChild(sSel);
+  }
+
+  if(COLOR_SUPPORTED.includes(type) || CHART_COLOR_SUPPORTED.includes(type)){
+    const cl = document.createElement('label');
+    cl.textContent = CHART_COLOR_SUPPORTED.includes(type) ? 'Couleur principale (1ère série)' : 'Couleur';
+    fields.appendChild(cl);
+    const row = document.createElement('div');
+    row.className = 'color-row';
+    const cSel = document.createElement('select');
+    cSel.name = 'colorSelect';
+    COLOR_OPTIONS.forEach(o => {
+      const opt = document.createElement('option');
+      opt.value = o.v; opt.textContent = o.t;
+      cSel.appendChild(opt);
+    });
+    const cCustom = document.createElement('input');
+    cCustom.type = 'color';
+    cCustom.name = 'colorCustom';
+    cCustom.value = '#ff4d4d';
+    const existingColor = existing && existing.color ? existing.color : '';
+    if(existingColor){
+      const isPreset = COLOR_OPTIONS.some(o => o.v === existingColor);
+      if(isPreset) cSel.value = existingColor;
+      else { cSel.value = 'custom'; cCustom.value = existingColor; cCustom.classList.add('visible'); }
+    }
+    cSel.onchange = () => {
+      if(cSel.value === 'custom') cCustom.classList.add('visible');
+      else cCustom.classList.remove('visible');
+    };
+    row.appendChild(cSel); row.appendChild(cCustom);
+    fields.appendChild(row);
+  }
+
+  const bl = document.createElement('label');
+  bl.textContent = 'Retour à la ligne après';
+  fields.appendChild(bl);
+  const bSel = document.createElement('select');
+  bSel.name = 'breakAfter';
+  [{v:'false',t:'Non'},{v:'true',t:'Oui'}].forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o.v; opt.textContent = o.t;
+    bSel.appendChild(opt);
+  });
+  bSel.value = existing && existing.breakAfter ? 'true' : 'false';
+  fields.appendChild(bSel);
+
+  modal.classList.add('open');
+}
+function closeModal(){
+  document.getElementById('modal').classList.remove('open');
+  S.pendingType = null; S.editingIndex = null;
+}
+
+function confirmElement(){
+  if(!S.pendingType) return;
+  const fields = document.getElementById('modalFields').querySelectorAll('input, textarea, select');
+  const el = { type: S.pendingType };
+
+  fields.forEach(f => {
+    if(f.name === 'width'){ el.width = f.value; return; }
+    if(f.name === 'size'){ if(f.value) el.size = f.value; else delete el.size; return; }
+    if(f.name === 'breakAfter'){ el.breakAfter = f.value === 'true'; return; }
+    if(f.name === 'colorSelect') return;
+    if(f.name === 'colorCustom'){
+      const sel = document.querySelector('#modalFields select[name="colorSelect"]');
+      if(sel && sel.value === 'custom') el.color = f.value;
+      else if(sel && sel.value) el.color = sel.value;
+      return;
+    }
+    if(f.name === 'items'){
+      el.items = f.value.split('\n').map(s => s.trim()).filter(Boolean); return;
+    }
+    if(f.name === 'rows'){
+      el.rows = f.value.split('\n').map(line => line.split('|').map(s => s.trim())).filter(r => r.length > 0); return;
+    }
+    if(f.name === 'dataStr'){ el.dataStr = f.value; return; }
+    if(f.type === 'number'){ el[f.name] = Number(f.value); return; }
+    el[f.name] = f.value;
+  });
+
+  const list = S.slides[S.currentSlide].elements;
+  if(S.editingIndex !== null){
+    list[S.editingIndex] = el;
+    S.selectedIndex = S.editingIndex;
+  } else {
+    if(S.selectedIndex === null || S.insertPosition === 'end'){
+      list.push(el);
+      S.selectedIndex = list.length - 1;
+    } else if(S.insertPosition === 'before'){
+      list.splice(S.selectedIndex, 0, el);
+    } else {
+      list.splice(S.selectedIndex + 1, 0, el);
+      S.selectedIndex = S.selectedIndex + 1;
+    }
+  }
+  closeModal();
+  renderEditor();
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ============================================================
+   EXPORT HTML
+   ============================================================ */
+function exportHTML(){
+  const dataJson = JSON.stringify(S.slides);
+  const css = document.querySelector('style').textContent;
+  const chartRuntime = [
+    'const CHART_PALETTE = ' + JSON.stringify(CHART_PALETTE) + ';',
+    'const CHART_TYPES = ' + JSON.stringify(CHART_TYPES) + ';',
+    parseChartData.toString(), chartColor.toString(), svgWrap.toString(), emptyChart.toString(),
+    polarToXY.toString(), arcPath.toString(),
+    renderChartBars.toString(), renderChartHbars.toString(), renderChartLine.toString(),
+    renderChartArea.toString(), renderChartPie.toString(), renderChartGauge.toString(),
+    renderChartTimeline.toString(), renderChartRadar.toString(), renderChartStacked.toString(),
+    renderChartCompare.toString(), renderChartFunnel.toString(), renderChartByType.toString()
+  ].join('\n');
+
+  const runtime = `
+const slides = ${dataJson};
+const SIZE_VALUES = ${JSON.stringify(SIZE_VALUES)};
+const ANIM_BY_TYPE = ${JSON.stringify(ANIM_BY_TYPE)};
+const TRANSITION = '${S.transitionType}';
+let currentSlide = 0;
+let animToken = 0;
+const playedAnimations = {};
+
+${chartRuntime}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function getElementDuration(el){
+  const base = 700;
+  if(CHART_TYPES.includes(el.type)){
+    const n = parseChartData(el.dataStr || '').length;
+    return 900 + n * 150;
+  }
+  switch(el.type){
+    case 'bar': return 900;
+    case 'circle-progress': return 1400;
+    case 'counter': return 1400;
+    case 'terminal': return Math.max(700, (el.command?.length || 0) * 60 + 200);
+    case 'list': case 'list-numbered': case 'list-check': {
+      const n = el.items?.length || 0;
+      return n > 0 ? 500 + (n-1)*500 + 400 : 700;
+    }
+    case 'table': {
+      const n = Math.max(0, (el.rows?.length || 0) - 1);
+      return n > 0 ? 500 + (n-1)*500 + 400 : 700;
+    }
+    default: return base;
+  }
+}
+
+function renderElementContent(el){
+  if(CHART_TYPES.includes(el.type)) return renderChartByType(el.type, el.dataStr || '', el.color || null);
+  switch(el.type){
+    case 'title': return '<p class="el-title">'+escapeHtml(el.value)+'</p>';
+    case 'subtitle': return '<p class="el-subtitle">'+escapeHtml(el.value)+'</p>';
+    case 'text': return '<p class="el-text">'+escapeHtml(el.value)+'</p>';
+    case 'quote': return '<blockquote class="el-quote">'+escapeHtml(el.value)+'</blockquote>';
+    case 'highlight': return '<span class="el-highlight">'+escapeHtml(el.value)+'</span>';
+    case 'label': return '<span class="el-label">'+escapeHtml(el.value)+'</span>';
+    case 'terminal': return '<div class="el-terminal" data-command="'+escapeHtml(el.command||'')+'"><div class="bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="title">'+escapeHtml(el.title||'user@arch: ~')+'</span></div><div class="body"><span class="prompt">$</span><span class="terminal-cmd"></span><span class="cursor"></span></div></div>';
+    case 'badge': return '<span class="el-badge">'+escapeHtml(el.value)+'</span>';
+    case 'button': return '<button class="el-button">'+escapeHtml(el.value)+'</button>';
+    case 'button-secondary': return '<button class="el-button-secondary">'+escapeHtml(el.value)+'</button>';
+    case 'card': return '<div class="el-card"><div class="card-title">'+escapeHtml(el.title||'')+'</div><div class="card-text">'+escapeHtml(el.text||'')+'</div></div>';
+    case 'alert': return '<div class="el-alert '+(el.variant||'info')+'"><div>⚠</div><div>'+escapeHtml(el.value||'')+'</div></div>';
+    case 'bar': return '<div class="el-bar"><span data-value="'+el.value+'" style="width:0%"></span></div>';
+    case 'circle-progress': {
+      const r=46, c=2*Math.PI*r;
+      return '<div class="el-circle-progress" data-value="'+el.value+'"><svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="'+r+'"/><circle class="fg" cx="50" cy="50" r="'+r+'" stroke-dasharray="'+c+'" stroke-dashoffset="'+c+'"/></svg><div class="value">0%</div></div>';
+    }
+    case 'counter': return '<div class="el-counter"><span class="counter-value" data-value="'+escapeHtml(el.value)+'">0</span><small>'+escapeHtml(el.label||'')+'</small></div>';
+    case 'table': {
+      const rows = el.rows || [];
+      if(rows.length === 0) return '';
+      const head = rows[0].map(c => '<th>'+escapeHtml(c)+'</th>').join('');
+      const body = rows.slice(1).map(r => '<tr class="stagger-item">' + r.map(c => '<td>'+escapeHtml(c)+'</td>').join('') + '</tr>').join('');
+      return '<table class="el-table"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table>';
+    }
+    case 'code': return '<pre class="el-code">'+escapeHtml(el.value)+'</pre>';
+    case 'inline-code': return '<span class="el-inline-code">'+escapeHtml(el.value)+'</span>';
+    case 'image': return '<img class="el-image" src="'+escapeHtml(el.value)+'" alt="">';
+    case 'video': {
+      const url = el.value || '';
+      if(url.includes('youtube.com') || url.includes('youtu.be')){
+        const id = url.includes('youtu.be/') ? url.split('youtu.be/')[1].split('?')[0] : new URL(url).searchParams.get('v');
+        return '<div class="el-video"><iframe src="https://www.youtube.com/embed/'+id+'" allowfullscreen></iframe></div>';
+      }
+      return '<div class="el-video"><iframe src="'+escapeHtml(url)+'" allowfullscreen></iframe></div>';
+    }
+    case 'icon': return '<div class="el-icon">'+escapeHtml(el.value)+'</div>';
+    case 'list': case 'list-numbered': case 'list-check': {
+      const items = el.items || [];
+      const cls = el.type === 'list' ? 'el-list' : el.type === 'list-numbered' ? 'el-list-numbered' : 'el-list-check';
+      return '<ul class="'+cls+'">'+items.map(i => '<li class="stagger-item">'+escapeHtml(i)+'</li>').join('')+'</ul>';
+    }
+    case 'separator': return '<hr class="el-separator anim-separator">';
+    case 'spacer': return '<div class="el-spacer" style="height:'+(el.value||20)+'px"></div>';
+    default: return '';
+  }
+}
+
+function animateSpecific(el, elData){
+  if(elData && CHART_TYPES.includes(elData.type)){
+    el.querySelectorAll('.chart-bar, .chart-hbar, .chart-line-path, .chart-area-path, .chart-point, .chart-slice, .chart-value, .chart-timeline-dot, .chart-timeline-line, .chart-radar-shape, .chart-funnel-slice').forEach(node => node.classList.add('play'));
+    el.querySelectorAll('.chart-gauge-arc').forEach(g => {
+      const off = g.dataset.offset;
+      if(off !== undefined) setTimeout(() => g.style.strokeDashoffset = off, 30);
+    });
+    return;
+  }
+  const bar = el.querySelector('.el-bar > span');
+  if(bar){ const v = bar.dataset.value; setTimeout(() => { bar.style.width = v + '%'; }, 100); }
+  const circle = el.querySelector('.el-circle-progress');
+  if(circle){
+    const v = Number(circle.dataset.value);
+    const fg = circle.querySelector('.fg');
+    const valEl = circle.querySelector('.value');
+    const r = 46, c = 2 * Math.PI * r;
+    const offset = c * (1 - v/100);
+    setTimeout(() => {
+      fg.style.strokeDashoffset = offset;
+      let current = 0;
+      const step = Math.max(1, Math.round(v / 30));
+      const interval = setInterval(() => {
+        current += step;
+        if(current >= v){ current = v; clearInterval(interval); }
+        valEl.textContent = current + '%';
+      }, 40);
+    }, 200);
+  }
+  const counter = el.querySelector('.counter-value');
+  if(counter){
+    const target = Number(counter.dataset.value) || 0;
+    let current = 0;
+    const step = Math.max(1, Math.round(target / 40));
+    setTimeout(() => {
+      const interval = setInterval(() => {
+        current += step;
+        if(current >= target){ current = target; clearInterval(interval); }
+        counter.textContent = current;
+      }, 30);
+    }, 200);
+  }
+  const stags = el.querySelectorAll('.stagger-item');
+  stags.forEach((item, i) => setTimeout(() => item.classList.add('stagger-play'), 500 + i * 500));
+  const terminal = el.querySelector('.el-terminal');
+  if(terminal){
+    const cmdEl = terminal.querySelector('.terminal-cmd');
+    const fullText = terminal.dataset.command || '';
+    if(cmdEl && fullText){
+      let i = 0;
+      const interval = setInterval(() => {
+        cmdEl.textContent = fullText.slice(0, i + 1);
+        i++;
+        if(i >= fullText.length) clearInterval(interval);
+      }, 60);
+    }
+  }
+}
+
+function playSlideAnimations(slideIndex){
+  if(playedAnimations[slideIndex]) return;
+  playedAnimations[slideIndex] = true;
+  const myToken = animToken;
+  const section = document.querySelector('.slide[data-slide-id="'+slideIndex+'"]');
+  if(!section) return;
+  const slide = slides[slideIndex];
+  const animEls = section.querySelectorAll('.anim-el');
+  let cursor = 0;
+  animEls.forEach((el, i) => {
+    const elData = slide.elements[i];
+    const duration = getElementDuration(elData);
+    const delay = cursor;
+    cursor += duration + 500;
+    setTimeout(() => {
+      if(animToken !== myToken) return;
+      el.classList.add('anim-play');
+      animateSpecific(el, elData);
+    }, delay);
+  });
+}
+
+function renderAll(){
+  const container = document.getElementById('slidesContainer');
+  container.innerHTML = '';
+  slides.forEach((slide, si) => {
+    const section = document.createElement('section');
+    section.className = 'slide' + (si === 0 ? ' active' : '');
+    section.dataset.slideId = si;
+    slide.elements.forEach(el => {
+      const wrap = document.createElement('div');
+      wrap.className = 'el ' + (el.width || 'w-100') + ' anim-el ' + (ANIM_BY_TYPE[el.type] || 'anim-fade-in');
+      if(el.size && SIZE_VALUES[el.size] !== undefined) wrap.style.setProperty('--scale', SIZE_VALUES[el.size]);
+      if(el.color) wrap.style.setProperty('--el-color', el.color);
+      const content = document.createElement('div');
+      content.innerHTML = renderElementContent(el);
+      wrap.appendChild(content);
+      if(el.breakAfter){
+        const br = document.createElement('div');
+        br.className = 'el break-after';
+        wrap.appendChild(br);
+      }
+      section.appendChild(wrap);
+    });
+    container.appendChild(section);
+  });
+}
+
+function applySlideTransition(direction){
+  if(TRANSITION === 'none') return;
+  const section = document.querySelector('.slide[data-slide-id="'+currentSlide+'"]');
+  if(!section) return;
+  const cls = 'trans-' + TRANSITION;
+  section.classList.remove('trans-in','back','trans-slide','trans-fade','trans-zoom','trans-flip','trans-slide-up');
+  void section.offsetWidth;
+  if(direction < 0) section.classList.add('back');
+  section.classList.add('trans-in', cls);
+  setTimeout(() => section.classList.remove('trans-in', cls, 'back'), 600);
+}
+
+function showSlide(index, direction){
+  if(index < 0 || index >= slides.length) return;
+  const dir = direction !== undefined ? direction : (index > currentSlide ? 1 : -1);
+  currentSlide = index;
+  animToken++;
+  document.querySelectorAll('.slide').forEach((s, i) => s.classList.toggle('active', i === index));
+  const section = document.querySelector('.slide[data-slide-id="'+index+'"]');
+  if(section){
+    section.querySelectorAll('.anim-el').forEach(el => el.classList.remove('anim-play'));
+    section.querySelectorAll('.stagger-item').forEach(el => el.classList.remove('stagger-play'));
+    section.querySelectorAll('.el-bar > span').forEach(b => b.style.width = '0%');
+    section.querySelectorAll('.el-circle-progress').forEach(c => {
+      const fg = c.querySelector('.fg');
+      const valEl = c.querySelector('.value');
+      const r = 46, circ = 2 * Math.PI * r;
+      fg.style.strokeDashoffset = circ;
+      valEl.textContent = '0%';
+    });
+    section.querySelectorAll('.counter-value').forEach(cv => cv.textContent = '0');
+    section.querySelectorAll('.terminal-cmd').forEach(tc => tc.textContent = '');
+    section.querySelectorAll('.chart-bar, .chart-hbar, .chart-line-path, .chart-area-path, .chart-point, .chart-slice, .chart-value, .chart-timeline-dot, .chart-timeline-line, .chart-radar-shape, .chart-funnel-slice').forEach(n => n.classList.remove('play'));
+    section.querySelectorAll('.chart-gauge-arc').forEach(g => {
+      const circ = g.dataset.circ;
+      if(circ) g.style.strokeDashoffset = circ;
+    });
+  }
+  delete playedAnimations[index];
+  applySlideTransition(dir);
+  setTimeout(() => playSlideAnimations(index), 50);
+}
+
+function next(){ if(currentSlide < slides.length - 1) showSlide(currentSlide + 1, 1); }
+function prev(){ if(currentSlide > 0) showSlide(currentSlide - 1, -1); }
+
+document.addEventListener('keydown', (e) => {
+  if(e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ' || e.key === 'PageDown'){ e.preventDefault(); next(); }
+  if(e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp'){ e.preventDefault(); prev(); }
+  if(e.key === 'Home'){ showSlide(0); }
+  if(e.key === 'End'){ showSlide(slides.length - 1); }
+});
+
+let touchX = 0, touchY = 0;
+document.addEventListener('touchstart', (e) => {
+  touchX = e.touches[0].clientX; touchY = e.touches[0].clientY;
+}, {passive:true});
+document.addEventListener('touchend', (e) => {
+  const dx = e.changedTouches[0].clientX - touchX;
+  const dy = e.changedTouches[0].clientY - touchY;
+  if(Math.abs(dx) > Math.abs(dy)){
+    if(dx < -50) next();
+    if(dx > 50) prev();
+  } else {
+    if(dy < -50) next();
+    if(dy > 50) prev();
+  }
+}, {passive:true});
+
+renderAll();
+showSlide(0);
+`;
+
+  const overrideCss = `
+    html,body{background:#0a0a0a;overflow:hidden;width:100%;height:100%;}
+    .app{display:block;height:100vh;height:100dvh;}
+    #slidesContainer{position:relative;width:100vw;height:100vh;height:100dvh;}
+    .slide{padding:40px 20px;display:none;}
+    .slide.active{display:flex;}
+    .stage{max-width:100% !important;width:100%;height:100vh;height:100dvh;aspect-ratio:auto !important;border-radius:0;border:none;background:#0a0a0a;}
+    .stage .html-editor{position:absolute;inset:0;overflow-y:auto;}
+    .stage.presentation .anim-el{opacity:0;}
+  `;
+
+  const html = '<!DOCTYPE html>\n<html lang="fr">\n<head>\n<meta charset="UTF-8">\n' +
+'<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">\n' +
+'<title>Présentation</title>\n<style>' + css + overrideCss + '</style>\n</head>\n<body>\n' +
+'<div class="stage presentation" id="stage">\n  <div class="html-editor">\n    <div id="slidesContainer"></div>\n  </div>\n</div>\n' +
+'<script>\n' + runtime + '\n<\/script>\n
+<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js'));}</script>
+</body>\n</html>';
+
+  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'presentation.html';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+/* ============================================================
+   GESTES
+   ============================================================ */
+document.addEventListener('touchstart', e => S.touchX = e.touches[0].clientX, {passive:true});
+document.addEventListener('touchend', e => {
+  const diff = e.changedTouches[0].clientX - S.touchX;
+  if(diff < -50) next();
+  if(diff > 50) prev();
+}, {passive:true});
+document.addEventListener('keydown', e => {
+  if(e.key === 'ArrowRight') next();
+  if(e.key === 'ArrowLeft') prev();
+  if(e.key === 'Escape'){
+    if(S.presentationMode) togglePresentation();
+    else if(document.getElementById('transModal').classList.contains('open')) closeTransitionModal();
+    else if(document.getElementById('exportModal').classList.contains('open')) closeExportModal();
+    else if(document.getElementById('modal').classList.contains('open')) closeModal();
+  }
+});
+</script>
+</body>
+</html>
