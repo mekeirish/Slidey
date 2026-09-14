@@ -706,6 +706,8 @@
   .export-card .exp-text{flex:1;}
   .export-card .exp-title{font-size:.9rem;font-weight:700;color:#fff;}
   .export-card .exp-desc{font-size:.72rem;color:var(--muted);margin-top:2px;line-height:1.35;}
+  .export-card.paste .exp-icon{color:var(--yellow);}
+  .export-card.paste:hover{border-color:rgba(245,197,66,0.5);}
 
   @keyframes anim-fade-up{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
   @keyframes anim-fade-in{from{opacity:0;}to{opacity:1;}}
@@ -764,10 +766,7 @@
   ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.12);border-radius:3px;}
   ::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.2);}
 </style>
-
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#4b6cb7">
-<link rel="apple-touch-icon" href="icon.png"></head>
+</head>
 <body>
 
 <div class="app">
@@ -840,10 +839,33 @@
         <div class="exp-text"><div class="exp-title">JSON Down — Importer</div>
         <div class="exp-desc">Choisis un fichier .json pour remplacer les slides.</div></div>
       </button>
+      <button class="export-card paste" onclick="openPasteModal()">
+        <div class="exp-icon">📋</div>
+        <div class="exp-text"><div class="exp-title">JSON Paste — Coller</div>
+        <div class="exp-desc">Colle directement du JSON dans une zone de texte et importe-le.</div></div>
+      </button>
     </div>
     <input type="file" id="jsonFileInput" accept=".json,application/json" style="display:none">
     <div class="modal-actions">
       <button class="btn" onclick="closeExportModal()">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="pasteModal">
+  <div class="modal-box">
+    <h2>📋 Coller du JSON</h2>
+    <label>Colle ici le contenu JSON de tes slides :</label>
+    <textarea id="pasteTextarea" style="min-height:240px;font-family:var(--mono);font-size:.72rem;line-height:1.4;" placeholder='{
+  "version": 1,
+  "transitionType": "slide",
+  "slides": [
+    { "elements": [ { "type": "title", "value": "Ma slide", "width": "w-100" } ] }
+  ]
+}'></textarea>
+    <div class="modal-actions">
+      <button class="btn" onclick="closePasteModal()">Annuler</button>
+      <button class="btn primary" onclick="confirmPaste()">Charger les slides</button>
     </div>
   </div>
 </div>
@@ -1094,7 +1116,6 @@ function renderChartRadar(data, base){
 function renderChartStacked(data, base){
   if(!data.length) return emptyChart();
   const W=400, H=240, P=30;
-  const nSeries = Math.max(...data.map(d=>d.values.length));
   const totals = data.map(d=>d.values.reduce((a,b)=>a+Math.abs(b),0));
   const maxV = Math.max(...totals, 1);
   const gap = (W - P*2) / data.length;
@@ -1423,6 +1444,55 @@ function importJSON(){
   const input = document.getElementById('jsonFileInput');
   input.value = ''; input.click();
 }
+
+/* ============================================================
+   JSON PASTE
+   ============================================================ */
+function openPasteModal(){
+  closeExportModal();
+  document.getElementById('pasteTextarea').value = '';
+  document.getElementById('pasteModal').classList.add('open');
+  setTimeout(() => {
+    const ta = document.getElementById('pasteTextarea');
+    if(ta) ta.focus();
+  }, 100);
+}
+function closePasteModal(){
+  document.getElementById('pasteModal').classList.remove('open');
+}
+function confirmPaste(){
+  const raw = document.getElementById('pasteTextarea').value.trim();
+  if(!raw){
+    alert('❌ La zone est vide. Colle du JSON avant de valider.');
+    return;
+  }
+  try {
+    const data = JSON.parse(raw);
+    const slidesArr = Array.isArray(data) ? data : (data.slides || null);
+    if(!Array.isArray(slidesArr) || slidesArr.length === 0){
+      alert('❌ JSON invalide : aucune slide trouvée.');
+      return;
+    }
+    const clean = slidesArr.map(s => ({ elements: Array.isArray(s.elements) ? s.elements : [] }));
+    S.slides = clean;
+    S.currentSlide = 0;
+    S.selectedIndex = null;
+    S.insertPosition = 'end';
+    S.playedAnimations = {};
+    S.animToken++;
+    if(data.transitionType && S.transitions.some(t => t.id === data.transitionType)){
+      S.transitionType = data.transitionType;
+      buildTransitionGrid();
+    }
+    closePasteModal();
+    renderEditor();
+    alert(`✅ ${clean.length} slide(s) importée(s) avec succès.`);
+  } catch(err){
+    console.error(err);
+    alert('❌ Erreur lors de la lecture du JSON : ' + err.message);
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const input = document.getElementById('jsonFileInput');
   input.addEventListener('change', (e) => {
@@ -1546,11 +1616,8 @@ function buildElement(el, si, ei){
   wrap.addEventListener('click', (e) => {
     e.stopPropagation();
     if(S.presentationMode) return;
-    if(S.selectedIndex === ei && si === S.currentSlide){
-      editElement(si, ei);
-    } else {
-      selectElement(si, ei);
-    }
+    if(S.selectedIndex === ei && si === S.currentSlide) editElement(si, ei);
+    else selectElement(si, ei);
   });
   wrap.addEventListener('dblclick', (e) => {
     e.stopPropagation();
@@ -2024,12 +2091,8 @@ function confirmElement(){
       else if(sel && sel.value) el.color = sel.value;
       return;
     }
-    if(f.name === 'items'){
-      el.items = f.value.split('\n').map(s => s.trim()).filter(Boolean); return;
-    }
-    if(f.name === 'rows'){
-      el.rows = f.value.split('\n').map(line => line.split('|').map(s => s.trim())).filter(r => r.length > 0); return;
-    }
+    if(f.name === 'items'){ el.items = f.value.split('\n').map(s => s.trim()).filter(Boolean); return; }
+    if(f.name === 'rows'){ el.rows = f.value.split('\n').map(line => line.split('|').map(s => s.trim())).filter(r => r.length > 0); return; }
     if(f.name === 'dataStr'){ el.dataStr = f.value; return; }
     if(f.type === 'number'){ el[f.name] = Number(f.value); return; }
     el[f.name] = f.value;
@@ -2359,9 +2422,7 @@ showSlide(0);
 '<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">\n' +
 '<title>Présentation</title>\n<style>' + css + overrideCss + '</style>\n</head>\n<body>\n' +
 '<div class="stage presentation" id="stage">\n  <div class="html-editor">\n    <div id="slidesContainer"></div>\n  </div>\n</div>\n' +
-'<script>\n' + runtime + '\n<\/script>\n
-<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js'));}</script>
-</body>\n</html>';
+'<script>\n' + runtime + '\n<\/script>\n</body>\n</html>';
 
   const blob = new Blob([html], {type:'text/html;charset=utf-8'});
   const url = URL.createObjectURL(blob);
@@ -2387,6 +2448,7 @@ document.addEventListener('keydown', e => {
     if(S.presentationMode) togglePresentation();
     else if(document.getElementById('transModal').classList.contains('open')) closeTransitionModal();
     else if(document.getElementById('exportModal').classList.contains('open')) closeExportModal();
+    else if(document.getElementById('pasteModal').classList.contains('open')) closePasteModal();
     else if(document.getElementById('modal').classList.contains('open')) closeModal();
   }
 });
