@@ -1,0 +1,32 @@
+{
+  "name": "poste-lad",
+  "version": "1.0.0",
+  "description": "Bureau de poste DAHMOUNI 14010",
+  "main": "main.js",
+  "author": "Bureau de poste DAHMOUNI 14010",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win portable --ia32"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.dahmouni.postelad",
+    "productName": "Poste LAD",
+    "directories": { "output": "dist" },
+    "files": ["main.js", "testslidey/**/*"],
+    "win": {
+      "target": [{ "target": "portable", "arch": ["ia32"] }],
+      "artifactName": "PosteLAD-${version}-portable.${ext}"
+    },
+    "portable": {
+      "requestExecutionLevel": "user"
+    },
+    "compression": "maximum",
+    "asar": true
+  }
+}
