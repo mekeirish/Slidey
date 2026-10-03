@@ -1,14 +1,12 @@
 // ============================================================
-// Poste LAD — Electron main process
+// Poste LAD — Electron main process (auto-généré)
 // ============================================================
 const path = require('path');
 const fs = require('fs');
 const { app, BrowserWindow, Menu, session } = require('electron');
 
-// Désactiver les Service Workers dans Electron
 app.commandLine.appendSwitch('disable-features', 'ServiceWorker');
 
-// Calcul du dossier de données (sortir de Roaming)
 let baseDir;
 if (process.env.PORTABLE_EXECUTABLE_DIR) {
   baseDir = process.env.PORTABLE_EXECUTABLE_DIR;
@@ -28,7 +26,6 @@ app.setPath('sessionData', dataDir);
 app.setPath('cache', path.join(dataDir, 'cache'));
 app.setPath('logs', path.join(dataDir, 'logs'));
 
-// Nettoyage des caches au démarrage
 function hardClean() {
   const folders = ['Service Worker', 'Cache', 'Code Cache', 'GPUCache',
                    'Cache Storage', 'Session Storage', 'blob_storage'];
@@ -43,14 +40,14 @@ let mainWindow;
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1100, height: 800, minWidth: 400, minHeight: 500,
-    title: 'Poste LAD — Bureau de poste DAHMOUNI 14010',
-    icon: path.join(__dirname, 'testslidey', 'icon.png'),
+    title: 'Poste LAD',
+    icon: path.join(__dirname, 'Slideyexe', 'icon.png'),
     autoHideMenuBar: true,
     backgroundColor: '#f1f5f9',
     webPreferences: { contextIsolation: true, nodeIntegration: false }
   });
 
-  mainWindow.loadFile(path.join(__dirname, 'testslidey', 'index.html'));
+  mainWindow.loadFile(path.join(__dirname, 'Slideyexe', 'index.html'));
   mainWindow.on('closed', () => { mainWindow = null; });
 }
 
@@ -83,7 +80,6 @@ function buildMenu() {
 }
 
 app.whenReady().then(async () => {
-  console.log('[start] userData =', app.getPath('userData'));
   hardClean();
   try {
     await session.defaultSession.clearStorageData({
